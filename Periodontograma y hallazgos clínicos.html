@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Periodontograma y hallazgos clínicos</title>
+<style>
+:root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);--bg:#f4f6f8;--card:#fff;--tx:#1b2430;--mu:#667085;--bd:#d5dbe3;--ac:#0f766e;--acx:#fff;--wa:#c0392b;--or:#d97706;--cr:#f6efe0;--ro:#e2cfae;--st:#8a7a5c}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#12171d;--card:#1b222b;--tx:#e8edf3;--mu:#98a2b3;--bd:#323c48;--ac:#2dd4bf;--acx:#06332f;--wa:#f97066;--or:#fbbf24;--cr:#e9e2d0;--ro:#b9a784;--st:#7a6d52}}
+:root[data-theme="dark"]{--bg:#12171d;--card:#1b222b;--tx:#e8edf3;--mu:#98a2b3;--bd:#323c48;--ac:#2dd4bf;--acx:#06332f;--wa:#f97066;--or:#fbbf24;--cr:#e9e2d0;--ro:#b9a784;--st:#7a6d52}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--tx);font:14px/1.4 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;padding:12px;max-width:820px;margin-inline:auto}
+h1{font-size:18px;margin:0}h2{font-size:15px;margin:0 0 8px}.mu{color:var(--mu);font-size:12px}
+.card{background:var(--card);border:1px solid var(--bd);border-radius:12px;padding:10px;margin:10px 0}
+input,select,textarea,button{font:inherit;color:var(--tx);background:var(--bg);border:1px solid var(--bd);border-radius:8px;padding:6px;width:100%;min-width:0}
+.row{display:flex;gap:6px;flex-wrap:wrap}.row>*{flex:1 1 90px}
+button{cursor:pointer;width:auto}button.p{background:var(--ac);color:var(--acx);border:0;font-weight:600;padding:8px 12px}
+.sc{overflow-x:auto}.ar{display:flex;min-width:760px;gap:2px;margin:4px 0}.ar .mid{margin-left:10px}
+.tc{flex:1;padding:2px;text-align:center;border:1px solid transparent;border-radius:8px;background:none}.tc.sel{border-color:var(--ac);background:var(--bg)}
+.tc b{display:block;font-size:12px}.tc svg{display:block;margin:auto;width:100%;max-width:44px;height:auto}
+.pd{display:flex;gap:1px;justify-content:center;margin:2px 0}.pd i{font-style:normal;font-size:10px;min-width:12px;border-bottom:2px solid transparent;color:var(--mu)}
+.pd i.o{color:var(--or);font-weight:700}.pd i.r{color:var(--wa);font-weight:700}.pd i.b{border-color:var(--wa)}.pd i.q{background:var(--or);color:#000}
+.bd{font-size:9px;color:var(--ac);font-weight:700}
+.g{width:100%;border-collapse:collapse;font-size:12px;margin-bottom:8px}.g td,.g th{padding:2px;text-align:center}.g th:first-child,.g td:first-child{text-align:left;color:var(--mu);width:60px}.g input[type=number]{padding:4px;text-align:center}.g input[type=checkbox]{width:18px;height:18px}
+.f{border-top:1px solid var(--bd);padding:6px 0}.x{color:var(--wa);float:right;border:0;background:none;padding:0 4px}
+.sf{display:flex;gap:5px;flex-wrap:wrap;margin:6px 0}.sf label{display:flex;gap:4px;align-items:center;border:1px solid var(--bd);border-radius:8px;padding:4px 8px}.sf input{width:auto}
+.ov{overflow-x:auto}table.r{border-collapse:collapse;width:100%}table.r td,table.r th{border-bottom:1px solid var(--bd);padding:4px;text-align:left}
+@media print{button,.nopr{display:none}}
+</style>
+</head>
+<body>
+<h1>Periodontograma y hallazgos clínicos</h1>
+<div class="mu">Toca un diente para registrar datos periodontales y hallazgos.</div>
+<div class="card"><div class="row">
+<input data-k="p.id" placeholder="ID paciente"><input data-k="p.nom" placeholder="Nombre y apellidos"><input data-k="p.fecha" type="date">
+</div><div class="row nopr" style="margin-top:6px">
+<button data-a="json">Exportar</button><button data-a="imp">Importar</button><button data-a="print">Imprimir</button><button data-a="reset">Nuevo examen</button>
+<input type="file" id="fi" accept=".json" hidden></div></div>
+
+<div class="card sc"><div class="mu">Superior (18 → 28) · fila superior: vestibular, inferior: palatino</div><div class="ar" id="up"></div><div class="ar" id="lo"></div><div class="mu">Inferior (48 → 38) · fila superior: vestibular, inferior: lingual</div></div>
+<div class="card" id="st"></div>
+<div class="card" id="ed"><div class="mu">Selecciona un diente.</div></div>
+<div class="card"><h2>Resumen de hallazgos</h2><div class="ov"><table class="r" id="rs"></table></div></div>
+<div class="mu">Leyenda PD: <span style="color:var(--or)">4–5 mm</span> · <span style="color:var(--wa)">≥6 mm</span> · subrayado rojo = sangrado · fondo naranja = placa</div>
+
+<script>
+var UP=[18,17,16,15,14,13,12,11,21,22,23,24,25,26,27,28],LO=[48,47,46,45,44,43,42,41,31,32,33,34,35,36,37,38],ALL=UP.concat(LO),SUP=["M","D","V","L/P","O/I"];
+var D={p:{id:"",nom:"",fecha:""},tipos:["Caries","Restauración","Corona","Endodoncia","Lesión periapical","Fractura","Desgaste","Retenido","Sensibilidad"],t:{}},cur=null,selT="",showNT=false;
+try{var s=localStorage.getItem("perio2");if(s)D=JSON.parse(s)}catch(e){}
+function save(){try{localStorage.setItem("perio2",JSON.stringify(D))}catch(e){}}
+function def(){return{e:"p",mov:0,fur:0,nota:"",pd:[null,null,null,null,null,null],gm:[null,null,null,null,null,null],bop:[0,0,0,0,0,0],pl:[0,0,0,0,0,0],h:[]}}
+function get(n){return D.t[n]||(D.t[n]=def())}
+function tt(n){var d=n%10;return d<3?"i":d==3?"c":d<6?"p":"m"}
+var R={i:"M14 42Q15 8 20 3Q25 8 26 42Z",c:"M13 42Q15 4 20 2Q25 4 27 42Z",p:"M13 42Q15 8 20 4Q25 8 27 42Z",m:"M5 42L9 6L17 42Z M23 42L31 6L35 42Z M15 42L20 14L25 42Z"};
+var C={i:"M10 44Q10 84 16 86H24Q30 84 30 44Z",c:"M11 44Q9 68 20 88Q31 68 29 44Z",p:"M9 44Q8 80 14 84L20 79L26 84Q32 80 31 44Z",m:"M4 44Q3 82 10 85L16 80L22 84L28 80L32 85Q38 82 36 44Z"};
+function svg(n,x){var t=tt(n),low=n>30&&n<49,imp=x.e=="i",op=x.e=="a"?".18":"1";
+var root=imp?'<rect x="16" y="8" width="8" height="36" rx="2" fill="var(--st)"/><path d="M16 16H24M16 24H24M16 32H24" stroke="var(--cr)" stroke-width="2"/>':'<path d="'+R[t]+'" fill="var(--ro)" stroke="var(--st)"/>';
+var cr='<path d="'+C[t]+'" fill="'+(imp?"var(--ac)":"var(--cr)")+'" stroke="'+(x.h.length?"var(--wa)":"var(--st)")+'" stroke-width="'+(x.h.length?3:1)+'"/>';
+var mv=x.mov?'<text x="2" y="12" font-size="12" fill="var(--wa)" font-weight="700">M'+x.mov+'</text>':"",fu=x.fur?'<text x="26" y="12" font-size="12" fill="var(--or)" font-weight="700">F'+x.fur+'</text>':"";
+return'<svg viewBox="0 0 40 90" style="opacity:'+op+'"><g transform="'+(low?"translate(0,90) scale(1,-1)":"")+'">'+root+cr+'</g>'+(x.e=="a"?'<path d="M8 20L32 70M32 20L8 70" stroke="var(--wa)" stroke-width="3"/>':"")+mv+fu+'</svg>'}
+function pdr(x,o){var h='<div class="pd">';for(var j=o;j<o+3;j++){var v=x.pd[j],c=(v>=6?"r":v>=4?"o":"")+(x.bop[j]?" b":"")+(x.pl[j]?" q":"");h+='<i class="'+c+'">'+(v==null?"·":v)+"</i>"}return h+"</div>"}
+function cell(n){var x=D.t[n]||def();return'<button class="tc'+(cur==n?" sel":"")+'" data-a="sel" data-n="'+n+'"><b>'+n+"</b>"+pdr(x,0)+svg(n,x)+pdr(x,3)+(x.h.length?'<div class="bd">'+x.h.length+" hall.</div>":"")+"</button>"}
+function arcs(){document.getElementById("up").innerHTML=UP.map(cell).join("").replace(/(<button class="tc[^>]*data-n="21")/,'<span class="mid"></span>$1');document.getElementById("lo").innerHTML=LO.map(cell).join("").replace(/(<button class="tc[^>]*data-n="31")/,'<span class="mid"></span>$1')}
+function stats(){var sp=0,np=0,sn=0,nn=0,b=0,p=0,pr=0,deep=0;ALL.forEach(function(n){var x=D.t[n]||def();if(x.e=="a")return;pr++;for(var j=0;j<6;j++){if(x.pd[j]!=null){sp+=x.pd[j];np++;if(x.pd[j]>=6)deep++;if(x.gm[j]!=null){sn+=x.pd[j]-x.gm[j];nn++}}b+=x.bop[j]?1:0;p+=x.pl[j]?1:0}});
+var f=function(a,c){return c?(a/c).toFixed(1):"0.0"},pc=function(a){return pr?Math.round(100*a/(pr*6)):0};
+document.getElementById("st").innerHTML="<h2>Análisis</h2><div class='row'><div>PD promedio<br><b>"+f(sp,np)+" mm</b></div><div>NI promedio<br><b>"+f(sn,nn)+" mm</b></div><div>Sitios PD ≥6<br><b>"+deep+"</b></div><div>BOP<br><b>"+pc(b)+"%</b></div><div>Placa<br><b>"+pc(p)+"%</b></div><div>Dientes presentes<br><b>"+pr+"</b></div></div>"}
+function esc(s){return String(s).replace(/[&<>"]/g,function(c){return{"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]})}
+function opts(a,v){return a.map(function(o){return"<option"+(o==v?" selected":"")+">"+esc(o)+"</option>"}).join("")}
+function grid(x,o,t){var h='<div class="mu">'+t+'</div><table class="g"><tr><th></th><th>D</th><th>C</th><th>M</th></tr>',r=[["PD","pd"],["GM","gm"]];
+r.forEach(function(q){h+="<tr><td>"+q[0]+"</td>";for(var j=o;j<o+3;j++)h+='<td><input type="number" min="-15" max="15" data-k="'+q[1]+'" data-i="'+j+'" value="'+(x[q[1]][j]==null?"":x[q[1]][j])+'"></td>';h+="</tr>"});
+h+="<tr><td>NI</td>";for(var j=o;j<o+3;j++)h+="<td>"+(x.pd[j]!=null&&x.gm[j]!=null?x.pd[j]-x.gm[j]:"–")+"</td>";h+="</tr>";
+[["BOP","bop"],["Placa","pl"]].forEach(function(q){h+="<tr><td>"+q[0]+"</td>";for(var j=o;j<o+3;j++)h+='<td><input type="checkbox" data-k="'+q[1]+'" data-i="'+j+'"'+(x[q[1]][j]?" checked":"")+"></td>";h+="</tr>"});return h+"</table>"}
+function ed(){var el=document.getElementById("ed");if(!cur){el.innerHTML='<div class="mu">Selecciona un diente.</div>';return}
+var x=get(cur),fu=tt(cur)=="m"||cur==14||cur==24;
+var h="<h2>Diente "+cur+'</h2><div class="row"><div><div class="mu">Estado</div><select data-k="e"><option value="p"'+(x.e=="p"?" selected":"")+'>Presente</option><option value="a"'+(x.e=="a"?" selected":"")+'>Ausente</option><option value="i"'+(x.e=="i"?" selected":"")+'>Implante</option></select></div><div><div class="mu">Movilidad</div><select data-k="mov">'+opts(["0","1","2","3"],String(x.mov))+"</select></div>"+(fu?'<div><div class="mu">Furcación</div><select data-k="fur">'+opts(["0","1","2","3"],String(x.fur))+"</select></div>":"")+"</div>";
+if(x.e!="a"){h+=grid(x,0,"Vestibular")+grid(x,3,tt(cur)=="m"||cur<30&&cur>10||cur>20&&cur<30?"Palatino / Lingual":"Lingual")}
+h+='<input data-k="nota" placeholder="Nota del diente" value="'+esc(x.nota)+'" style="margin-bottom:8px"><h2>Hallazgos clínicos</h2>';
+h+=x.h.length?x.h.map(function(f,i){return'<div class="f"><button class="x" data-a="del" data-i="'+i+'">✕</button><b>'+esc(f.tipo)+"</b> "+(f.sup.length?f.sup.join(", ")+" · ":"")+esc(f.sev)+(f.nota?'<div class="mu">'+esc(f.nota)+"</div>":"")+'<div class="mu">'+f.fecha+"</div></div>"}).join(""):'<div class="mu">Sin hallazgos.</div>';
+h+='<div class="row" style="margin-top:8px"><select id="ft">'+opts(D.tipos,selT||D.tipos[0])+'</select><button data-a="nt">+ Nuevo hallazgo</button></div>';
+if(showNT)h+='<div class="row" style="margin-top:6px"><input id="ntn" placeholder="Nombre del nuevo hallazgo"><button class="p" data-a="addt">Guardar tipo</button></div>';
+h+='<div class="sf">'+SUP.map(function(s){return'<label><input type="checkbox" class="fs" value="'+s+'">'+s+"</label>"}).join("")+'</div><div class="row"><select id="fv">'+opts(["Leve","Moderado","Severo"],"Leve")+'</select><input id="fn" placeholder="Notas"></div><button class="p" data-a="add" style="margin-top:8px;width:100%">Agregar hallazgo</button>';
+el.innerHTML=h}
+function rs(){var h="<tr><th>Diente</th><th>Hallazgos</th></tr>",k=ALL.filter(function(n){return D.t[n]&&D.t[n].h.length});
+h+=k.length?k.map(function(n){return"<tr><td>"+n+"</td><td>"+D.t[n].h.map(function(f){return esc(f.tipo)+(f.sup.length?" ("+f.sup.join("")+")":"")+" – "+esc(f.sev)}).join("; ")+"</td></tr>"}).join(""):'<tr><td colspan="2" class="mu">Aún no hay hallazgos.</td></tr>';document.getElementById("rs").innerHTML=h}
+function render(){arcs();stats();ed();rs();var q=document.querySelectorAll("[data-k^='p.']");q.forEach(function(i){i.value=D.p[i.dataset.k.slice(2)]||""})}
+document.addEventListener("change",function(e){var el=e.target,k=el.dataset.k;if(!k)return;
+if(k.indexOf("p.")==0){D.p[k.slice(2)]=el.value;save();return}
+var x=get(cur),i=+el.dataset.i;
+if(k=="pd"||k=="gm")x[k][i]=el.value===""?null:+el.value;else if(k=="bop"||k=="pl")x[k][i]=el.checked?1:0;else if(k=="mov"||k=="fur")x[k]=+el.value;else x[k]=el.value;
+save();render()});
+document.addEventListener("click",function(e){var el=e.target.closest("[data-a]");if(!el)return;var a=el.dataset.a;
+if(a=="sel"){cur=+el.dataset.n;showNT=false;render()}
+else if(a=="nt"){showNT=!showNT;ed();var q=document.getElementById("ntn");if(q)q.focus()}
+else if(a=="addt"){var v=document.getElementById("ntn").value.trim();if(v){if(D.tipos.indexOf(v)<0)D.tipos.push(v);selT=v;showNT=false;save();ed()}}
+else if(a=="add"&&cur){var x=get(cur);x.h.push({tipo:document.getElementById("ft").value,sup:[].slice.call(document.querySelectorAll(".fs:checked")).map(function(i){return i.value}),sev:document.getElementById("fv").value,nota:document.getElementById("fn").value.trim(),fecha:new Date().toISOString().slice(0,10)});save();render()}
+else if(a=="del"){get(cur).h.splice(+el.dataset.i,1);save();render()}
+else if(a=="json"){var l=document.createElement("a");l.href="data:application/json;charset=utf-8,"+encodeURIComponent(JSON.stringify(D,null,1));l.download="periodontograma.json";document.body.appendChild(l);l.click();l.remove()}
+else if(a=="imp")document.getElementById("fi").click();
+else if(a=="print")window.print();
+else if(a=="reset"){D.t={};D.p.fecha="";cur=null;save();render()}});
+document.getElementById("fi").addEventListener("change",function(e){var f=e.target.files[0];if(!f)return;var r=new FileReader();r.onload=function(){try{var d=JSON.parse(r.result);if(d.t){D=d;save();cur=null;render()}}catch(x){}};r.readAsText(f)});
+render();
+</script>
+</body>
+</html>

@@ -1,0 +1,450 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Periodontograma UNAN-León</title>
+<meta name="description" content="Periodontograma clínico con la nomenclatura del Colectivo de Periodoncia UNAN-León (2024).">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=JetBrains+Mono:wght@500;700&display=swap">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<style>
+/* Layout: ficha clínica en papel blanco arriba; debajo editor del diente seleccionado + análisis en dos columnas */
+:root{
+  --bg:#edf1f0;--card:#ffffff;--fg:#14211f;--mu:#566764;--bd:#d0dad8;--ac:#0f6e66;--acx:#ffffff;--soft:#e2ecea;--warn:#b42318;
+  --f-ui:"Atkinson Hyperlegible",system-ui,-apple-system,"Segoe UI",sans-serif;--f-num:"JetBrains Mono",ui-monospace,monospace;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0f1514;--card:#18201f;--fg:#e4ecea;--mu:#93a5a1;--bd:#2c3836;--ac:#3cc7b8;--acx:#06302b;--soft:#1f2b29;--warn:#f7907f;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#0f1514;--card:#18201f;--fg:#e4ecea;--mu:#93a5a1;--bd:#2c3836;--ac:#3cc7b8;--acx:#06302b;--soft:#1f2b29;--warn:#f7907f;color-scheme:dark}
+*{box-sizing:border-box}[hidden]{display:none!important}
+body{background:var(--bg);color:var(--fg);font:15px/1.45 var(--f-ui);margin:0;padding-block:16px 40px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.wrap{max-width:1180px;margin:0 auto;display:flex;flex-direction:column;gap:12px}
+h1{font-size:22px;margin:0;text-wrap:balance}h2{font-size:15px;margin:0 0 8px}h3{font-size:13px;margin:10px 0 4px;color:var(--mu);letter-spacing:.04em;text-transform:uppercase}
+.mu{color:var(--mu);font-size:13px}
+.card{background:var(--card);border:1px solid var(--bd);border-radius:12px;padding:12px}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}.row>*{flex:1 1 120px;min-width:0}
+input,select,button{font:inherit;color:var(--fg);background:var(--bg);border:1px solid var(--bd);border-radius:8px;padding:7px 9px;width:100%;min-width:0}
+input:focus-visible,select:focus-visible,button:focus-visible{outline:2px solid var(--ac);outline-offset:1px}
+button{cursor:pointer;width:auto;flex:0 0 auto}
+button.p,button.on{background:var(--ac);color:var(--acx);border-color:var(--ac);font-weight:700}
+.tabs{display:flex;gap:6px;flex-wrap:wrap}.tabs button{font-size:13px}
+.banner{background:var(--soft);border:1px dashed var(--ac);border-radius:10px;padding:8px 12px;font-size:13px}
+.sheet{background:#fff;border:1px solid var(--bd);border-radius:12px;overflow-x:auto;padding:6px}
+.arch{display:block;width:100%;min-width:780px;height:auto}
+.arch [data-a]{cursor:pointer}
+.marks{display:flex;flex-wrap:wrap;gap:6px 16px;font-size:12.5px;color:var(--mu)}
+.marks span{display:inline-flex;align-items:center;gap:6px}
+.sw{display:inline-block;width:18px;height:10px;border-radius:2px}
+.cols{display:grid;grid-template-columns:minmax(0,1.25fr) minmax(0,1fr);gap:12px;align-items:start}
+@media (max-width:860px){.cols{grid-template-columns:minmax(0,1fr)}}
+.zoom{display:block;width:100%;max-width:440px;height:auto;margin:4px auto 8px;background:#fff;border-radius:10px;border:1px solid var(--bd)}
+.g{width:100%;border-collapse:collapse;font-size:13px;margin:4px 0 8px}
+.g td,.g th{padding:3px;text-align:center}.g th{font:700 11px var(--f-num);color:var(--mu)}
+.g td:first-child{text-align:left;color:var(--mu);width:64px;font-size:12px}
+.g input[type=number]{text-align:center;padding:5px;font-family:var(--f-num)}
+.g input[type=checkbox]{width:20px;height:20px;accent-color:var(--ac)}
+.ni{font:700 13px var(--f-num)}
+.lbl{font-size:12px;color:var(--mu);margin-bottom:3px}
+.f{display:flex;gap:8px;align-items:flex-start;border-top:1px solid var(--bd);padding:7px 0}
+.f .dot{width:12px;height:12px;border-radius:3px;flex:0 0 12px;margin-top:4px;border:1px solid rgba(0,0,0,.25)}
+.f .tx{flex:1;min-width:0}.f .tx b{display:block}
+.x{color:var(--warn);border:0;background:none;padding:2px 6px;font-size:16px}
+.sf{display:flex;gap:6px;flex-wrap:wrap;margin:8px 0 4px}
+.sf label{display:flex;gap:5px;align-items:center;border:1px solid var(--bd);border-radius:8px;padding:5px 9px;font:700 12px var(--f-num)}
+.sf input{width:auto;accent-color:var(--ac)}
+.hint{font-size:12.5px;color:var(--mu);background:var(--soft);border-radius:8px;padding:6px 9px;margin:6px 0}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:8px}
+.stats div{background:var(--soft);border-radius:8px;padding:8px}
+.stats b{display:block;font:700 18px var(--f-num)}.stats span{font-size:12px;color:var(--mu)}
+table.ev{width:100%;border-collapse:collapse;font-size:13px;margin-top:8px}
+table.ev td,table.ev th{border-bottom:1px solid var(--bd);padding:5px;text-align:left}
+table.ev td:not(:first-child),table.ev th:not(:first-child){text-align:right;font-family:var(--f-num);font-variant-numeric:tabular-nums}
+.rs{font-size:13.5px}.rs div{padding:4px 0;border-bottom:1px solid var(--bd)}
+.rs i{display:inline-block;width:9px;height:9px;border-radius:2px;margin:0 4px 0 6px}
+details summary{cursor:pointer;font-weight:700}
+.leg{background:#fff;border-radius:10px;overflow-x:auto;margin-top:8px}
+.leg svg{display:block;width:100%;min-width:560px;height:auto}
+#msg{min-height:1em}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+
+</head>
+<body>
+<div class="wrap">
+  <header class="row" style="align-items:flex-end">
+    <div style="flex:1 1 300px">
+      <h1>Periodontograma UNAN-León</h1>
+      <div class="mu">Nomenclatura del Colectivo de Periodoncia (2024). Toca un diente de la ficha para registrar datos periodontales y hallazgos.</div>
+    </div>
+  </header>
+
+  <div class="card" style="display:flex;flex-direction:column;gap:8px">
+    <div class="row"><input id="pid" data-k="p.id" placeholder="ID del paciente"><input id="pnom" data-k="p.nom" placeholder="Nombre y apellidos" style="flex:2 1 220px"></div>
+    <div class="tabs" id="tabs"></div>
+    <div class="row"><input id="xf" data-k="x.f" type="date" style="flex:0 1 180px"><button data-a="cp" id="cp">Copiar examen anterior</button><span></span></div>
+    <div class="row"><button class="p" data-a="pdf">Generar reporte PDF</button><button data-a="json">Exportar JSON</button><button data-a="imp">Importar JSON</button><button data-a="demo">Cargar ejemplo</button><button data-a="reset">Vaciar examen</button><input type="file" id="fi" accept=".json,application/json" hidden></div>
+    <div id="msg" class="mu" role="status"></div>
+  </div>
+
+  <div id="banner"></div>
+
+  <div class="sheet"><div id="c1"></div><div id="c2"></div></div>
+  <div class="marks">
+    <span><i class="sw" style="background:#d61f1f;height:3px"></i>Margen gingival</span>
+    <span><i class="sw" style="background:#1a9a3a;height:3px"></i>Línea mucogingival</span>
+    <span><i class="sw" style="background:repeating-linear-gradient(45deg,#111 0 1.5px,#fff 1.5px 4px);border:1px solid #111"></i>Bolsa (sondaje ≥ 4 mm)</span>
+    <span><i class="sw" style="background:#d61f1f;width:8px;height:8px;border-radius:50%"></i>Sangrado al sondaje</span>
+    <span><i class="sw" style="background:#d4a017;width:8px;height:8px"></i>Placa</span>
+    <span><i class="sw" style="border:2px solid #d61f1f;width:10px;height:10px;border-radius:50%"></i>Furca (relleno según grado)</span>
+  </div>
+
+  <div class="cols">
+    <div class="card" id="ed"></div>
+    <div style="display:flex;flex-direction:column;gap:12px;min-width:0">
+      <div class="card" id="st"></div>
+      <div class="card"><h2>Resumen de hallazgos</h2><div id="rs" class="rs"></div></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <details open><summary>Simbología de hallazgos (manual UNAN-León)</summary>
+      <div class="mu" style="margin-top:6px">Cada hallazgo se dibuja con el color y el símbolo del manual. Caries y restauraciones se pintan en la superficie elegida, tanto en la vista lateral como en la oclusal.</div>
+      <div class="leg" id="leg"></div>
+    </details>
+  </div>
+</div>
+
+<script>
+/* ================= Datos base ================= */
+var UP=[18,17,16,15,14,13,12,11,21,22,23,24,25,26,27,28],LO=[48,47,46,45,44,43,42,41,31,32,33,34,35,36,37,38],ALL=UP.concat(LO);
+var K={r:"#d61f1f",n:"#151515",a:"#1f3fbf",o:"#f08a00",v:"#1a9a3a"};
+var F={
+ caries:["Caries",K.r,"o"],borde:["Borde defectuoso",K.r,"o"],endo:["Endodoncia",K.r,"r"],periapical:["Lesión periapical",K.r,"a"],fistula:["Fístula",K.r,"f"],resto:["Resto radicular",K.r,"t"],exudado:["Exudado",K.r,"e"],
+ fractura:["Fractura",K.n,"z"],desgaste:["Desgaste (atrición, abrasión, bruxismo)",K.n,"w"],diastema:["Diastema",K.n,"d"],impaccion:["Impactación de alimentos",K.n,"m"],gancho:["Gancho / apoyo de removible",K.n,"g"],extraccion:["Extracción indicada",K.n,"x"],
+ amalgama:["Amalgama",K.a,"o"],corona:["Prótesis fija / corona",K.a,"c"],removible:["Diente de prótesis removible",K.a,"c"],migracion:["Migración / rotación / extrusión",K.a,"M"],
+ resina:["Resina",K.o,"o"],provisional:["Provisional",K.o,"c"],carilla:["Carilla",K.o,"v"],poste:["Endoposte",K.o,"p"],
+ sensibilidad:["Sensibilidad (sin símbolo en el manual)",K.n,"s"]
+};
+var GRP=[["Rojo",["caries","borde","endo","periapical","fistula","resto","exudado"]],["Negro",["fractura","desgaste","diastema","impaccion","gancho","extraccion"]],["Azul",["amalgama","corona","removible","migracion"]],["Naranja",["resina","provisional","carilla","poste"]],["Otros",["sensibilidad"]]];
+var MAPA={"Caries":"caries","Restauración":"amalgama","Corona":"corona","Endodoncia":"endo","Lesión periapical":"periapical","Fractura":"fractura","Desgaste":"desgaste","Retenido":"__r","Sensibilidad":"sensibilidad"};
+var EXN=["Inicial","Reevaluación (1 mes)","Mantenimiento 1","Mantenimiento 2"];
+var KEY="perio-unan-v1",D,xi=0,cur=null,showNT=false,demoOn=false;
+var $=function(i){return document.getElementById(i)},nn=function(v){return v!=null&&v!==""};
+function n6(){return[null,null,null,null,null,null]}function z6(){return[0,0,0,0,0,0]}
+function def(){return{e:"p",mov:0,fu:[0,0],pe:["",""],pd:n6(),mg:n6(),bop:z6(),pl:z6(),lm:[null,null],h:[],nota:""}}
+function fresh(){return{p:{id:"",nom:""},ex:EXN.map(function(n){return{n:n,f:"",t:{}}}),cu:[]}}
+function today(){var d=new Date();return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0")}
+function regCu(){D.cu.forEach(function(c){F[c.k]=[c.l,c.c,"o"]})}
+function customKey(l){for(var i=0;i<D.cu.length;i++)if(D.cu[i].l==l)return D.cu[i].k;var k="u"+Date.now()+Math.floor(Math.random()*999);D.cu.push({k:k,l:l,c:K.n});F[k]=[l,K.n,"o"];return k}
+function norm(x){var d=def();x=x||{};d.e=x.e||"p";d.mov=+x.mov||0;
+ d.fu=Array.isArray(x.fu)?[+x.fu[0]||0,+x.fu[1]||0]:[+x.fur||0,0];d.pe=Array.isArray(x.pe)?x.pe:["",""];
+ d.pd=x.pd||n6();d.mg=x.mg||x.gm||n6();d.bop=x.bop||z6();d.pl=x.pl||z6();d.lm=x.lm||[null,null];d.nota=x.nota||"";
+ d.h=(x.h||[]).map(function(h){if(h.k)return{k:h.k,s:h.s||[],sev:h.sev||"Moderado",nota:h.nota||"",fecha:h.fecha||""};
+  var m=MAPA[h.tipo];if(m=="__r"){d.e="r";return null}
+  return{k:m||customKey(h.tipo||"Hallazgo"),s:h.sup||[],sev:h.sev||"Moderado",nota:(h.tipo=="Restauración"?"Importado como «Restauración». ":"")+(h.nota||""),fecha:h.fecha||""}}).filter(Boolean);
+ return d}
+function normT(t){var o={};Object.keys(t||{}).forEach(function(k){o[k]=norm(t[k])});return o}
+function load(d){if(d&&d.ex){D=fresh();D.p={id:(d.p&&d.p.id)||"",nom:(d.p&&d.p.nom)||""};D.cu=d.cu||[];regCu();
+  d.ex.forEach(function(e,i){if(i<4)D.ex[i]={n:e.n||EXN[i],f:e.f||"",t:normT(e.t)}});return true}
+ if(d&&d.t){D=fresh();D.p={id:(d.p&&d.p.id)||"",nom:(d.p&&d.p.nom)||""};D.ex[0].f=(d.p&&d.p.fecha)||"";D.ex[0].t=normT(d.t);return true}
+ return false}
+function save(){try{localStorage.setItem(KEY,JSON.stringify(D))}catch(e){}}
+function T(){return D.ex[xi].t}
+function get(n){var t=T();return t[n]||(t[n]=def())}
+
+/* ================= Anatomía por pieza =================
+   Marco canónico: caja 40x90, raíz arriba (y 0-44), corona abajo (44-90), LUC en y=44, mesial a la DERECHA.
+   [cw0 cuello, cw1 contorno máx, cb borde oclusal, forma oclusal, raíces[x0,x1,ápiceX,ápiceY], furca[x,y], raíces posteriores] */
+var SU={1:[7,11.5,86,"flat",[[13,27,20,5]]],2:[6,9.5,84,"round",[[14,26,21,9]]],3:[7,11,88,"point",[[13,27,20,1]]],
+ 4:[7.5,11,86,"pm",[[12.5,19.6,15,8],[20.4,27.5,25,9]],[20,26]],5:[7.5,10.5,86,"pm",[[12.5,27.5,20,6]]],
+ 6:[14,17,85,"m2",[[6,16.5,7,11],[23.5,34,31,8]],[20,34],[[12,28,20,4]]],7:[13,16,85,"m2",[[7,17.5,10,12],[22.5,33,29,10]],[20,36],[[12,28,20,6]]],
+ 8:[11.5,14,82,"m2",[[8.5,31.5,20,16]],null]};
+var SLW={1:[4.5,6.5,85,"flat",[[15.5,24.5,20,8]]],2:[5,7,85,"flat",[[15,25,20,7]]],3:[6.5,9.5,88,"point",[[13.5,26.5,20,2]]],
+ 4:[6.5,9.5,86,"pm",[[13.5,26.5,20,5]]],5:[7,10,86,"pm",[[13,27,20,5]]],
+ 6:[14,17.5,85,"m3",[[6,17,7,9],[23,34,31,7]],[20,32]],7:[13,16,85,"m2",[[7,17.5,9,11],[22.5,33,30,9]],[20,33]],8:[12,14.5,83,"m2",[[8,18,12,15],[22,32,28,13]],[20,36]]};
+function sp(n){var q=Math.floor(n/10),d=n%10,a=(q<3?SU:SLW)[d];return{cw0:a[0],cw1:a[1],cb:a[2],oc:a[3],roots:a[4],fur:a[5]||null,back:a[6]||null,low:q>=3,up:q<3,mir:q==2||q==3,d:d}}
+function f(v){return Math.round(v*10)/10}
+function crownP(s){var L=20-s.cw1,R=20+s.cw1,l0=20-s.cw0,r0=20+s.cw0,b=s.cb,g1=L+2*s.cw1/3,g2=R-2*s.cw1/3;
+ var p="M"+l0+" 44C"+(l0-2)+" 52 "+L+" 58 "+L+" 66L"+(L+.5)+" "+(b-8);
+ if(s.oc=="flat")p+="C"+(L+.5)+" "+(b-2)+" "+(L+2)+" "+b+" "+(L+5)+" "+b+"L"+(R-5)+" "+b+"C"+(R-2)+" "+b+" "+(R-.5)+" "+(b-2)+" "+(R-.5)+" "+(b-8);
+ else if(s.oc=="round")p+="C"+(L+.5)+" "+(b-1)+" "+(L+4)+" "+(b+.5)+" 20 "+b+"C"+(R-4)+" "+(b+.5)+" "+(R-.5)+" "+(b-1)+" "+(R-.5)+" "+(b-8);
+ else if(s.oc=="point")p+="C"+(L+1)+" "+(b-5)+" "+(L+6)+" "+(b-3)+" 20 "+b+"C"+(R-6)+" "+(b-3)+" "+(R-1)+" "+(b-5)+" "+(R-.5)+" "+(b-8);
+ else if(s.oc=="pm")p+="C"+(L+1)+" "+(b-3)+" "+(L+6)+" "+(b-.5)+" 20 "+b+"C"+(R-6)+" "+(b-.5)+" "+(R-1)+" "+(b-3)+" "+(R-.5)+" "+(b-8);
+ else if(s.oc=="m2")p+="C"+(L+.5)+" "+(b-2)+" "+(L+3)+" "+b+" "+(L+7)+" "+b+"Q18 "+b+" 20 "+(b-2.5)+"Q22 "+b+" "+(R-7)+" "+b+"C"+(R-3)+" "+b+" "+(R-.5)+" "+(b-2)+" "+(R-.5)+" "+(b-8);
+ else p+="C"+(L+.5)+" "+(b-2)+" "+(L+2.5)+" "+b+" "+(L+5.5)+" "+b+"Q"+f(g1-1.5)+" "+b+" "+f(g1)+" "+(b-2.2)+"Q"+f(g1+1.5)+" "+b+" 20 "+b+"Q"+f(g2-1.5)+" "+b+" "+f(g2)+" "+(b-2.2)+"Q"+f(g2+1.5)+" "+b+" "+(R-5.5)+" "+b+"C"+(R-2.5)+" "+b+" "+(R-.5)+" "+(b-2)+" "+(R-.5)+" "+(b-8);
+ return p+"L"+R+" 66C"+R+" 58 "+(r0+2)+" 52 "+r0+" 44Q20 41 "+l0+" 44Z"}
+function rootP(r){var x0=r[0],x1=r[1],ax=r[2],ay=r[3];
+ return"M"+x0+" 44C"+x0+" 30 "+f(ax-2.6)+" "+(ay+9)+" "+f(ax-.7)+" "+(ay+1)+"Q"+ax+" "+f(ay-.6)+" "+f(ax+.7)+" "+(ay+1)+"C"+f(ax+2.6)+" "+(ay+9)+" "+x1+" 30 "+x1+" 44Z"}
+function trunkP(s){var r=s.roots,a=r[0][0],b=r[r.length-1][1],fy=s.fur[1];
+ return"M"+(a+.3)+" 45L"+(a+.8)+" "+(fy+4)+"Q20 "+(fy-3)+" "+(b-.8)+" "+(fy+4)+"L"+(b-.3)+" 45Z"}
+function grooves(s){var b=s.cb,L=20-s.cw1,R=20+s.cw1,xs=s.oc=="m2"?[20]:s.oc=="m3"?[L+2*s.cw1/3,R-2*s.cw1/3]:[];
+ var o=xs.map(function(x){return'<path d="M'+f(x)+" "+(b-2.5)+"Q"+f(x+.6)+" "+(b-8)+" "+f(x)+" "+(b-15)+'" fill="none" stroke="#8a7656" stroke-width=".8" opacity=".75"/>'}).join("");
+ if(s.oc=="flat"||s.oc=="round")o+='<path d="M'+f(20-s.cw1*.35)+" "+(b-2)+"V"+(b-12)+"M"+f(20+s.cw1*.35)+" "+(b-2)+"V"+(b-12)+'" fill="none" stroke="#b9ab90" stroke-width=".6" opacity=".6"/>';
+ return o}
+function rr(x,y,w,h,r){x=f(x);y=f(y);w=f(w);h=f(h);return"M"+(x+r)+" "+y+"H"+f(x+w-r)+"Q"+f(x+w)+" "+y+" "+f(x+w)+" "+(y+r)+"V"+f(y+h-r)+"Q"+f(x+w)+" "+f(y+h)+" "+f(x+w-r)+" "+f(y+h)+"H"+(x+r)+"Q"+x+" "+f(y+h)+" "+x+" "+f(y+h-r)+"V"+(y+r)+"Q"+x+" "+y+" "+(x+r)+" "+y+"Z"}
+function reg(s,u){var L=20-s.cw1,R=20+s.cw1,b=s.cb;return u=="O/I"?rr(L-1,b-9,2*s.cw1+2,12,2):u=="M"?rr(R-7,49,9,b-47,3):u=="D"?rr(L-2,49,9,b-47,3):rr(20-s.cw1*.55,50,s.cw1*1.1,b-63,4)}
+function cen(s,u){var L=20-s.cw1,R=20+s.cw1,b=s.cb;return u=="O/I"?[20,b-3.5]:u=="M"?[R-3.5,62]:u=="D"?[L+3.5,62]:[20,50+(b-63)/2]}
+var SEV={Leve:2.4,Moderado:4,Severo:6.3};
+function blob(cx,cy,r,sd,c,clip){var p="";for(var i=0;i<9;i++){var an=i/9*Math.PI*2,q=r*(.72+.3*Math.abs(Math.sin(sd*1.7+i*2.3)));p+=(i?"L":"M")+f(cx+Math.cos(an)*q)+" "+f(cy+Math.sin(an)*q)}
+ return'<path d="'+p+'Z" fill="'+c+'" stroke="#7d0b0b" stroke-width=".7"'+clip+'/>'}
+function implantBody(){var o='<path d="M14 45L14.6 16Q15 9 20 8Q25 9 25.4 16L26 45Z" fill="url(#gT)"/>';
+ for(var y=13;y<43;y+=3.4)o+='<path d="M14.8 '+f(y)+"L25.2 "+f(y-1.6)+'" stroke="#59606a" stroke-width=".7"/>';
+ return o+'<path d="M14 45L14.6 16Q15 9 20 8Q25 9 25.4 16L26 45" fill="none" stroke="'+K.a+'" stroke-width="1.7" stroke-dasharray="3 2"/><rect x="16.5" y="40" width="7" height="6" fill="#aeb4bb" stroke="#59606a" stroke-width=".6"/>'}
+function anat(s,rf,cf,stk,nat,imp){var o="",cp=crownP(s);
+ if(imp)o+=implantBody();else{
+  (s.back||[]).forEach(function(r){o+='<path d="'+rootP(r)+'" fill="'+(nat?"url(#gRb)":rf)+'" stroke="'+stk+'" stroke-width="1"/>'});
+  var rs=s.roots.map(rootP);if(s.roots.length>1&&s.fur)rs.push(trunkP(s));
+  var fl=rs.map(function(p){return'<path d="'+p+'" fill="'+rf+'"/>'}).join("");
+  o+='<g stroke="'+stk+'" stroke-width="2.2">'+fl+"</g>"+fl;
+  if(!nat)o+=rs.map(function(p){return'<path d="'+p+'" fill="url(#gS)"/>'}).join("")}
+ return o+'<path d="'+cp+'" fill="'+cf+'" stroke="'+stk+'" stroke-width="1.1"/>'}
+function longest(s){var a=s.roots.concat(s.back||[]);return a.reduce(function(m,r){return r[3]<m[3]?r:m},a[0])}
+var MIR='<g transform="translate(40 0) scale(-1 1)">';
+
+/* Dibuja un diente (vista lateral). sd=0 vestibular, sd=1 palatino/lingual. X,Y = esquina de la caja 40x90 */
+function tooth(n,x,sd,uid,X,Y){
+ var s=sp(n),H=x.h||[],e=x.e,ab=e=="a",ST="#3d3428";
+ var tr="translate("+(X+(s.mir?40:0))+" "+(Y+(s.low?90:0))+") scale("+(s.mir?-1:1)+" "+(s.low?-1:1)+")";
+ var cp=crownP(s),cid="cc"+uid,clip=' clip-path="url(#'+cid+')"';
+ var ck=null,rest=false;H.forEach(function(h){var d=F[h.k];if(!d)return;if(d[2]=="c")ck=d[1];if(d[2]=="t")rest=true});
+ var g='<g transform="'+tr+'" stroke-linejoin="round" stroke-linecap="round"><defs><clipPath id="'+cid+'"><path d="'+cp+'"/></clipPath></defs>';
+ if(e=="r")return g+'<g transform="translate(20 47) rotate(11) scale(.74) translate(-20 -57)">'+anat(s,"#fff","#fff","#111",1,0)+'<ellipse cx="20" cy="66" rx="15" ry="12" fill="none" stroke="#111" stroke-width="2.4"/></g></g>';
+ var natR=!ab&&!rest,rf=ab?K.n:rest?K.r:"url(#gR)",cf=ab&&!ck?K.n:rest?K.r:e=="i"?K.a:ck?ck:"url(#gE)",natC=cf=="url(#gE)";
+ g+=anat(s,rf,cf,ab?"#000":ST,natR,e=="i");
+ var hl='<ellipse cx="'+f(20-s.cw1*.38)+'" cy="66" rx="'+f(s.cw1*.24)+'" ry="11" fill="url(#gH)"'+clip;
+ g+=natC?'<path d="'+cp+'" fill="url(#gC)"/>'+hl+'/>'+grooves(s):'<path d="'+cp+'" fill="url(#gS)"/>'+hl+' opacity=".45"/>';
+ if(ab)return g+"</g>";
+ var L=20-s.cw1,R=20+s.cw1,b=s.cb,p1="",p2="",out="";
+ var vis=function(u){return u=="V"?sd==0:u=="L/P"?sd==1:true};
+ if(x.fu&&x.fu[sd]>0&&s.fur&&e!="i"){var gr=x.fu[sd];p2+='<circle cx="'+s.fur[0]+'" cy="'+s.fur[1]+'" r="3.6" fill="'+(gr>=3?K.r:gr==2?"rgba(214,31,31,.35)":"none")+'" stroke="'+K.r+'" stroke-width="2"/>'}
+ H.forEach(function(h,hi){var d=F[h.k];if(!d)return;var c=d[1],k=d[2],S=h.s||[],sr=SEV[h.sev]||4,side;
+  if(k=="o"){var U=S.length?S.filter(vis):null;
+   if(h.k=="caries"){if(!U)p1+='<path d="'+cp+'" fill="'+c+'" opacity=".85"/>';else U.forEach(function(u){var q=cen(s,u);p1+=blob(q[0],q[1],sr,hi+u.length,c,clip)})}
+   else if(h.k=="borde")(U||["*"]).forEach(function(u){p2+='<path d="'+(u=="*"?cp:reg(s,u))+'" fill="none" stroke="'+K.r+'" stroke-width="2.3"'+clip+'/>'});
+   else(U||["*"]).forEach(function(u){var pp=u=="*"?cp:reg(s,u);p1+='<path d="'+pp+'" fill="'+c+'" stroke="rgba(0,0,0,.45)" stroke-width=".8"'+clip+'/><path d="'+pp+'" fill="url(#gS)"'+clip+'/>'})}
+  else if(k=="v"){if(sd==0)p1+='<path d="'+rr(L-1,48,2*s.cw1+2,b-46,2)+'" fill="'+c+'" opacity=".9"'+clip+'/><path d="'+rr(L-1,48,2*s.cw1+2,b-46,2)+'" fill="url(#gS)"'+clip+'/>'}
+  else if(k=="w"){var hh={Leve:2.2,Moderado:4,Severo:6.5}[h.sev]||4;p1+='<rect x="'+(L-2)+'" y="'+f(b-hh)+'" width="'+(2*s.cw1+4)+'" height="'+(hh+3)+'" fill="'+c+'"'+clip+'/>'}
+  else if(k=="r"){var a0=f(20-s.cw0*.55),a1=f(20+s.cw0*.55);p2+='<path d="M'+a0+" 40L"+a0+" 50Q20 55 "+a1+" 50L"+a1+' 40Z" fill="'+c+'"/>';
+   s.roots.concat(s.back||[]).forEach(function(r){var m=(r[0]+r[1])/2;p2+='<path d="M'+m+" 42Q"+f((m+r[2])/2)+" "+f((42+r[3])/2)+" "+r[2]+" "+(r[3]+2.5)+'" fill="none" stroke="'+c+'" stroke-width="2.4"/>'})}
+  else if(k=="p"){var r=(s.back&&s.back[0])||s.roots[0],m=(r[0]+r[1])/2,ey=44-(44-r[3])*.55;p2+='<path d="M'+m+" 50L"+f(m*.6+r[2]*.4)+" "+f(ey)+'" stroke="'+c+'" stroke-width="3.4" fill="none"/>'}
+  else if(k=="a"){var lr=longest(s);p2+='<circle cx="'+lr[2]+'" cy="'+(lr[3]+2)+'" r="5.2" fill="rgba(214,31,31,.18)" stroke="'+c+'" stroke-width="2"/>'}
+  else if(k=="f"){var fx=Math.min(37,20+s.cw0+5);p2+='<circle cx="'+fx+'" cy="24" r="3.6" fill="none" stroke="'+c+'" stroke-width="2"/><circle cx="'+fx+'" cy="33" r="1.7" fill="'+c+'"/>'}
+  else if(k=="e")p2+='<path d="M20 36V58M15.5 52L20 59L24.5 52" fill="none" stroke="'+c+'" stroke-width="2.4"/>';
+  else if(k=="m"){side=S.indexOf("D")>=0;p2+=(side?MIR:"<g>")+'<path d="M43 68L38.5 48M36.3 53L38.5 48L42.4 51.5" fill="none" stroke="'+c+'" stroke-width="2"/></g>'}
+  else if(k=="d"){side=S.indexOf("D")>=0;p2+=(side?MIR:"<g>")+'<path d="M41 54V84M43.6 54V84" stroke="'+c+'" stroke-width="1.8"/></g>'}
+  else if(k=="z"){side=S.indexOf("D")>=0;var P=[[R+1,b-16],[R-4,b-11],[R-1.2,b-7],[R-6,b-2.5],[R-3.5,b+1.5]],zs=P.map(function(q,i){return(i?"L":"M")+f(q[0])+" "+f(q[1])}).join("");
+   p2+=(side?MIR:"<g>")+'<path d="M'+(R+2)+" "+(b-17)+zs.replace("M","L")+"L"+(R+2)+" "+(b+3)+'Z" fill="#fff"'+clip+'/><path d="'+zs+'" fill="none" stroke="'+c+'" stroke-width="2"/></g>'}
+  else if(k=="g"){side=S.indexOf("M")<0;p2+=(side?MIR:"<g>")+'<path d="M'+(R+5)+" 60L"+(R-.5)+" 60Q20 67 "+(L+1.5)+" 58M"+(R+3)+" 60V"+(b-2)+'" fill="none" stroke="'+c+'" stroke-width="2.6"/></g>'}
+  else if(k=="x")p2+='<path d="M7 8L33 86M33 8L7 86" stroke="'+c+'" stroke-width="2.6"/>';
+  else if(k=="M"){if(S.indexOf("O/I")>=0)p2+='<path d="M20 48V'+(b+1)+"M15 "+(b-5)+"L20 "+(b+1)+"L25 "+(b-5)+'" fill="none" stroke="'+c+'" stroke-width="2.6"/>';
+   else if(S.indexOf("M")>=0||S.indexOf("D")>=0)p2+=(S.indexOf("M")<0?MIR:"<g>")+'<path d="M6 66H35M30 61.5L35.5 66L30 70.5" fill="none" stroke="'+c+'" stroke-width="2.6"/></g>';
+   else p2+='<path d="M27 66A7 7 0 1 1 20 59M20 59L24.2 56M20 59L23.6 63" fill="none" stroke="'+c+'" stroke-width="2.4"/>'}
+  else if(k=="s"){var bx=X+(s.mir?40-32:32),by=s.low?Y+90-74:Y+74;out+='<circle cx="'+bx+'" cy="'+by+'" r="5.5" fill="#fff" stroke="#151515" stroke-width="1.2"/><text x="'+bx+'" y="'+(by+3)+'" font-size="8" font-weight="700" text-anchor="middle" fill="#151515">S</text>'}
+ });
+ return g+p1+p2+"</g>"+out}
+
+/* Vista oclusal con superficies V, L/P, M, D, O/I */
+var OC={ui:"M3 11Q18 1 33 11Q31 27 18 33Q5 27 3 11Z",li:"M8 12Q18 7 28 12Q27 27 18 31Q9 27 8 12Z",c:"M5 15Q9 4 18 3Q27 4 31 15Q28 29 18 33Q8 29 5 15Z",p:"M5 18Q5 5 18 5Q31 5 31 18Q31 31 18 31Q5 31 5 18Z",um:"M3 9Q4 3 10 3L28 4Q34 5 33 12L32 27Q31 33 25 33L8 32Q3 31 3 25Z",lm:"M3 10Q3 4 9 4L28 4Q34 4 34 10L33 26Q33 32 27 32L9 32Q3 32 3 26Z"};
+var FI={ui:"M6 12Q18 6 30 12",li:"M10 13Q18 9 26 13",c:"M8 15L18 9L28 15",p:"M9 18Q13 16 18 18Q23 20 27 18",um:"M9 13L18 16L27 12M18 16L20 25M12 25L20 25L27 23",lm:"M7 18L29 18M13 18L12 9M23 18L24 9M18 18L18 27"};
+var POLY={"V":"0,0 36,0 25,11 11,11","L/P":"0,36 36,36 25,25 11,25","D":"0,0 11,11 11,25 0,36","M":"36,0 25,11 25,25 36,36","O/I":"11,11 25,11 25,25 11,25"},CEN={"V":[18,6],"L/P":[18,30],"D":[6,18],"M":[30,18],"O/I":[18,18]};
+function ocls(n){var s=sp(n),d=s.d;return d<=2?(s.up?"ui":"li"):d==3?"c":d<=5?"p":(s.up?"um":"lm")}
+function occl(n,x,X,Y,uid){var s=sp(n),c=ocls(n),o=OC[c],id="oc"+uid,clip=' clip-path="url(#'+id+')"',H=x.h||[],e=x.e;
+ var g='<g transform="'+(s.mir?"translate("+(X+36)+" "+Y+") scale(-1 1)":"translate("+X+" "+Y+")")+'" stroke-linejoin="round"><defs><clipPath id="'+id+'"><path d="'+o+'"/></clipPath></defs>';
+ if(e=="r")return g+'<path d="'+o+'" fill="#fff" stroke="#111" stroke-width="1.1" stroke-dasharray="2.5 2"/></g>';
+ var ck=null,rest=false;H.forEach(function(h){var d=F[h.k];if(!d)return;if(d[2]=="c")ck=d[1];if(d[2]=="t")rest=true});
+ var fill=e=="a"&&!ck?K.n:rest?K.r:e=="i"?K.a:ck||"url(#gO)",p2="";
+ g+='<path d="'+o+'" fill="'+fill+'"/>';if(fill!="url(#gO)")g+='<path d="'+o+'" fill="url(#gOs)"/>';
+ if(e=="p"&&!rest&&!ck)H.forEach(function(h,hi){var d=F[h.k];if(!d)return;
+  if(d[2]=="x"){p2+='<path d="M4 4L32 32M32 4L4 32" stroke="'+K.n+'" stroke-width="2.2"/>';return}
+  if(d[2]=="w"){g+='<path d="'+o+'" fill="rgba(21,21,21,.22)"/>';return}
+  if(d[2]!="o")return;var S=h.s&&h.s.length?h.s:null;
+  if(h.k=="caries"){if(!S)g+='<path d="'+o+'" fill="'+d[1]+'" opacity=".85"/>';else S.forEach(function(u){var q=CEN[u];g+=blob(q[0],q[1],(SEV[h.sev]||4)*.95,hi+u.length,d[1],clip)})}
+  else if(h.k=="borde")(S||["V","L/P","M","D","O/I"]).forEach(function(u){p2+='<polygon points="'+POLY[u]+'" fill="none" stroke="'+K.r+'" stroke-width="2.4"'+clip+'/>'});
+  else(S||["V","L/P","M","D","O/I"]).forEach(function(u){g+='<polygon points="'+POLY[u]+'" fill="'+d[1]+'"'+clip+'/>'})});
+ g+='<path d="M0 0L11 11M36 0L25 11M0 36L11 25M36 36L25 25M11 11H25V25H11Z" fill="none" stroke="#000" stroke-opacity=".14" stroke-width=".7"'+clip+'/>';
+ if(fill=="url(#gO)")g+='<path d="'+FI[c]+'" fill="none" stroke="#8a7656" stroke-width=".9" stroke-linecap="round"/>';
+ g+=p2+'<path d="'+o+'" fill="none" stroke="'+(e=="a"?"#000":"#3d3428")+'" stroke-width="1.1"/>';
+ if(e=="i")g+='<circle cx="18" cy="18" r="3" fill="#dfe3e8" stroke="#59606a" stroke-width=".8"/>';
+ return g+"</g>"}
+
+function defs(){return'<defs><linearGradient id="gE" x1="0" x2="1"><stop offset="0" stop-color="#d6cfbf"/><stop offset=".35" stop-color="#fcfbf7"/><stop offset=".7" stop-color="#f1ece1"/><stop offset="1" stop-color="#c9c0ad"/></linearGradient>'+
+ '<linearGradient id="gC" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#c9a865" stop-opacity=".45"/><stop offset=".4" stop-color="#c9a865" stop-opacity="0"/></linearGradient>'+
+ '<linearGradient id="gR" x1="0" x2="1"><stop offset="0" stop-color="#bfa477"/><stop offset=".4" stop-color="#ead9b4"/><stop offset=".75" stop-color="#dac499"/><stop offset="1" stop-color="#b39868"/></linearGradient>'+
+ '<linearGradient id="gRb" x1="0" x2="1"><stop offset="0" stop-color="#a88d61"/><stop offset=".5" stop-color="#cdb68a"/><stop offset="1" stop-color="#9c8257"/></linearGradient>'+
+ '<linearGradient id="gS" x1="0" x2="1"><stop offset="0" stop-color="#000" stop-opacity=".35"/><stop offset=".33" stop-color="#fff" stop-opacity=".3"/><stop offset=".6" stop-color="#fff" stop-opacity="0"/><stop offset="1" stop-color="#000" stop-opacity=".32"/></linearGradient>'+
+ '<radialGradient id="gH"><stop offset="0" stop-color="#fff" stop-opacity=".9"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></radialGradient>'+
+ '<linearGradient id="gT" x1="0" x2="1"><stop offset="0" stop-color="#7d848d"/><stop offset=".4" stop-color="#e6e9ec"/><stop offset=".7" stop-color="#b6bcc3"/><stop offset="1" stop-color="#737a83"/></linearGradient>'+
+ '<radialGradient id="gO" cx=".45" cy=".42" r=".62"><stop offset="0" stop-color="#fdfcf8"/><stop offset=".65" stop-color="#efe9dc"/><stop offset="1" stop-color="#cfc6b3"/></radialGradient>'+
+ '<radialGradient id="gOs" cx=".42" cy=".38" r=".7"><stop offset="0" stop-color="#fff" stop-opacity=".35"/><stop offset=".6" stop-color="#fff" stop-opacity="0"/><stop offset="1" stop-color="#000" stop-opacity=".3"/></radialGradient>'+
+ '<pattern id="hp" width="4" height="4" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><line x1="0" y1="0" x2="0" y2="4" stroke="#111" stroke-width="1.2"/></pattern></defs>'}
+
+/* ================= Ficha por arcada ================= */
+function furOK(n){return n%10>=6||n==14||n==24}
+function arch(list,ui,t){var W=44,L0=60,low=list==LO,sc=3,w=L0+W*16,Hh=394;
+ var s='<svg xmlns="http://www.w3.org/2000/svg" width="'+w+'" height="'+Hh+'" viewBox="0 0 '+w+" "+Hh+'" font-family="Arial,Helvetica,sans-serif" font-size="10"'+(ui?' class="arch" role="img" aria-label="Arcada '+(low?"inferior":"superior")+'"':"")+">"+defs()+'<rect width="'+w+'" height="'+Hh+'" fill="#fff"/>';
+ if(ui&&cur&&list.indexOf(cur)>=0)s+='<rect x="'+(L0+list.indexOf(cur)*W)+'" y="0" width="'+W+'" height="'+Hh+'" fill="#0f6e66" fill-opacity=".08"/>';
+ [16,30,44,58,72,162,252,266,280,294,308,322,336,350].forEach(function(y){s+='<line x1="0" x2="'+w+'" y1="'+y+'" y2="'+y+'" stroke="#c4cccb"/>'});
+ for(var i=0;i<=16;i++){var X=L0+i*W;s+='<line x1="'+X+'" x2="'+X+'" y1="0" y2="72" stroke="#c4cccb"/><line x1="'+X+'" x2="'+X+'" y1="252" y2="350" stroke="#c4cccb"/>'}
+ s+='<line x1="'+(L0+8*W)+'" x2="'+(L0+8*W)+'" y1="0" y2="'+Hh+'" stroke="#8a9593" stroke-dasharray="3 3"/>';
+ ["Margen","Sondaje","N.I.","L.M.G."].forEach(function(l,i){s+='<text x="3" y="'+(27+i*14)+'" fill="#444">'+l+'</text><text x="3" y="'+(263+i*14)+'" fill="#444">'+l+"</text>"});
+ ["Furca V/P","Movilidad","Percusión"].forEach(function(l,i){s+='<text x="3" y="'+(319+i*14)+'" fill="#444" font-size="9">'+l+"</text>"});
+ s+='<text x="3" y="12" font-weight="bold">Pieza</text><text x="3" y="120" fill="#444">Vestibular</text><text x="3" y="210" fill="#444">'+(low?"Lingual":"Palatino")+'</text><text x="3" y="378" fill="#444" font-size="9">Oclusal</text>';
+ var G=["",""],M=["",""],Q=["",""],B=["",""],pg=[0,0],pm=[0,0],ov="";
+ var tx=function(v,xx,yv,bd){return!nn(v)?"":'<text x="'+xx+'" y="'+yv+'" text-anchor="middle" fill="'+K.a+'"'+(bd?' font-weight="bold"':"")+">"+v+"</text>"};
+ list.forEach(function(n,i){var x=t[n]||def(),cx=L0+i*W,S=sp(n),ord=S.mir?[2,1,0]:[0,1,2],sxp=[cx+9,cx+22,cx+35];
+  s+='<text x="'+(cx+22)+'" y="12" text-anchor="middle" font-weight="bold">'+n+"</text>";
+  for(var sd=0;sd<2;sd++){var Y0=sd?162:72,yy=sd?252:16,cej=Y0+(low?46:44),dir=low?-1:1;
+   s+=tooth(n,x,sd,n+"_"+sd,cx+2,Y0);
+   if(x.e=="a"){s+='<path d="M'+(cx+4)+" "+(yy+28)+"H"+(cx+W-4)+'" stroke="#111" stroke-width="2"/>';pg[sd]=0;pm[sd]=0;continue}
+   if(!x.mg.slice(sd*3,sd*3+3).some(nn))pg[sd]=0;
+   for(var jj=0;jj<3;jj++){var j=ord[jj],ix=sd*3+j,X=sxp[jj],m=x.mg[ix],d=x.pd[ix],my=cej+dir*(nn(m)?m:0)*sc;
+    s+=tx(m,X,yy+11)+tx(d,X,yy+25,d>=4)+tx(nn(m)&&nn(d)?d-m:null,X,yy+39);
+    if(x.bop[ix]){s+='<circle cx="'+(X+5.5)+'" cy="'+(yy+16)+'" r="2.2" fill="'+K.r+'"/>';B[sd]+='<line x1="'+(X-7)+'" x2="'+(X+7)+'" y1="'+my+'" y2="'+my+'" stroke="'+K.r+'" stroke-width="6" stroke-opacity=".3"/>'}
+    if(x.pl[ix])s+='<rect x="'+(X-8)+'" y="'+(yy+14)+'" width="3.8" height="3.8" fill="#d4a017"/>';
+    if(nn(m)){G[sd]+=(pg[sd]?"L":"M")+X+" "+my+" ";pg[sd]=1}
+    if(d>=4){var by=my-dir*d*sc;Q[sd]+='<rect x="'+(X-6)+'" y="'+Math.min(my,by)+'" width="12" height="'+Math.abs(by-my)+'" fill="url(#hp)"/><path d="M'+(X-6)+" "+by+'h12" stroke="#111" stroke-width="1.5"/>'}}
+   s+=tx(x.lm[sd],cx+22,yy+53);
+   if(nn(x.lm[sd])){var gy=cej+dir*(nn(x.mg[sd*3+1])?x.mg[sd*3+1]:0)*sc-dir*x.lm[sd]*sc;M[sd]+=(pm[sd]?"L":"M")+(cx+22)+" "+gy+" ";pm[sd]=1}else pm[sd]=0}
+  if(x.e!="a")s+=tx(furOK(n)?x.fu[0]+"/"+x.fu[1]:null,cx+22,319)+tx(x.mov,cx+22,333)+tx(((x.pe[0]?x.pe[0]+"V ":"")+(x.pe[1]?x.pe[1]+"H":""))||null,cx+22,347);
+  s+=occl(n,x,cx+4,356,n+"o");
+  if(ui)ov+='<rect x="'+cx+'" y="0" width="'+W+'" height="'+Hh+'" fill="#000" fill-opacity="0" data-a="sel" data-n="'+n+'"'+(cur==n?' stroke="#0f6e66" stroke-width="3"':"")+"><title>Diente "+n+"</title></rect>"});
+ s+='<g pointer-events="none">';for(var q=0;q<2;q++)s+=Q[q]+(G[q]?'<path d="'+G[q]+'" fill="none" stroke="'+K.r+'" stroke-width="2"/>':"")+(M[q]?'<path d="'+M[q]+'" fill="none" stroke="'+K.v+'" stroke-width="2"/>':"")+B[q];
+ return s+"</g>"+ov+"</svg>"}
+
+/* ================= Análisis ================= */
+function stats(t){var sp_=0,np=0,sn=0,cn=0,b=0,p=0,pr=0,deep=0,mid=0;
+ ALL.forEach(function(n){var x=t[n]||def();if(x.e=="a")return;pr++;for(var j=0;j<6;j++){if(nn(x.pd[j])){sp_+=x.pd[j];np++;if(x.pd[j]>=6)deep++;else if(x.pd[j]>=4)mid++;if(nn(x.mg[j])){sn+=x.pd[j]-x.mg[j];cn++}}b+=x.bop[j]?1:0;p+=x.pl[j]?1:0}});
+ return{pd:np?sp_/np:0,ni:cn?sn/cn:0,bop:pr?100*b/(pr*6):0,pl:pr?100*p/(pr*6):0,deep:deep,mid:mid,pr:pr,
+  has:np>0||ALL.some(function(n){return t[n]&&(t[n].h.length||t[n].e!="p")})}}
+function esc(v){return String(v).replace(/[&<>"]/g,function(c){return{"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]})}
+function so(k,a,v,i,id){return'<select data-k="'+k+'"'+(i==null?"":' data-i="'+i+'"')+(id?' id="'+id+'"':"")+">"+a.map(function(o){return'<option value="'+o[0]+'"'+(String(o[0])==String(v)?" selected":"")+">"+o[1]+"</option>"}).join("")+"</select>"}
+var G4=[[0,"0"],[1,"1"],[2,"2"],[3,"3"]],PE=[["","–"],["+","+"],["-","−"]];
+
+/* ================= Editor ================= */
+function grid(x,o,t,ord,n){var L=["D","C","M"],h='<h3>'+t+'</h3><table class="g"><tr><th></th>'+ord.map(function(j){return"<th>"+L[j]+"</th>"}).join("")+"</tr>";
+ [["Sondaje","pd"],["Margen","mg"]].forEach(function(q){h+="<tr><td>"+q[0]+"</td>"+ord.map(function(j){return'<td><input type="number" inputmode="numeric" min="-15" max="15" id="'+q[1]+n+"_"+(o+j)+'" data-k="'+q[1]+'" data-i="'+(o+j)+'" value="'+(nn(x[q[1]][o+j])?x[q[1]][o+j]:"")+'" aria-label="'+q[0]+" "+L[j]+'"></td>'}).join("")+"</tr>"});
+ h+='<tr><td>N.I.</td>'+ord.map(function(j){var i=o+j;return'<td class="ni">'+(nn(x.pd[i])&&nn(x.mg[i])?x.pd[i]-x.mg[i]:"–")+"</td>"}).join("")+"</tr>";
+ [["Sangrado","bop"],["Placa","pl"]].forEach(function(q){h+="<tr><td>"+q[0]+"</td>"+ord.map(function(j){return'<td><input type="checkbox" id="'+q[1]+n+"_"+(o+j)+'" data-k="'+q[1]+'" data-i="'+(o+j)+'"'+(x[q[1]][o+j]?" checked":"")+' aria-label="'+q[0]+" "+L[j]+'"></td>'}).join("")+"</tr>"});
+ return h+'<tr><td>L.M.G.</td><td colspan="3"><input type="number" min="0" max="15" id="lm'+n+"_"+(o/3)+'" data-k="lm" data-i="'+(o/3)+'" value="'+(nn(x.lm[o/3])?x.lm[o/3]:"")+'" placeholder="mm desde el margen (punto medio)"></td></tr></table>'}
+function zoom(n,x){return'<svg class="zoom" viewBox="0 0 150 108" role="img" aria-label="Diente '+n+' ampliado">'+defs()+'<rect width="150" height="108" fill="#fff"/>'+tooth(n,x,0,"Z0",4,4)+tooth(n,x,1,"Z1",52,4)+occl(n,x,106,30,"Zo")+
+ '<g font-family="Arial,sans-serif" font-size="5.5" fill="#566764" text-anchor="middle"><text x="24" y="104">Vestibular</text><text x="72" y="104">'+(n<30?"Palatino":"Lingual")+'</text><text x="124" y="74">Oclusal</text></g></svg>'}
+function ed(){var el=$("ed");if(!cur){el.innerHTML='<h2>Diente</h2><div class="mu">Toca un diente en la ficha para editarlo. El dibujo ampliado aparecerá aquí.</div>';return}
+ var x=get(cur),S=sp(cur),ord=S.mir?[2,1,0]:[0,1,2],fa=furOK(cur);
+ var h='<div class="row" style="justify-content:space-between"><h2 style="margin:0">Diente '+cur+'</h2><button data-a="close">Cerrar</button></div>'+zoom(cur,x);
+ h+='<div class="row"><div><div class="lbl">Estado</div>'+so("e",[["p","Presente"],["a","Ausente"],["r","Incluido / retenido"],["i","Implante"]],x.e,null,"e"+cur)+'</div><div><div class="lbl">Movilidad (0–3)</div>'+so("mov",G4,x.mov,null,"mov"+cur)+"</div></div>";
+ h+='<div class="row" style="margin-top:6px">'+(fa?'<div><div class="lbl">Furca vestibular</div>'+so("fu",G4,x.fu[0],0,"fu0"+cur)+'</div><div><div class="lbl">Furca '+(cur<30?"palatina":"lingual")+"</div>"+so("fu",G4,x.fu[1],1,"fu1"+cur)+"</div>":"")+'<div><div class="lbl">Percusión vertical</div>'+so("pe",PE,x.pe[0],0,"pe0"+cur)+'</div><div><div class="lbl">Percusión horizontal</div>'+so("pe",PE,x.pe[1],1,"pe1"+cur)+"</div></div>";
+ if(x.e=="a")h+='<div class="hint">Diente ausente: se pinta en negro. Para un póntico o un diente de removible agrega «Prótesis fija», «Provisional» o «Diente de prótesis removible»: la corona toma ese color y la raíz queda negra.</div>';
+ else h+=grid(x,0,"Vestibular",ord,cur)+grid(x,3,cur<30?"Palatino":"Lingual",ord,cur);
+ h+='<input id="nota'+cur+'" data-k="nota" placeholder="Nota del diente" value="'+esc(x.nota)+'"><h3>Hallazgos clínicos</h3>';
+ h+=x.h.length?x.h.map(function(fd,i){var d=F[fd.k]||[fd.k,"#888"];return'<div class="f"><span class="dot" style="background:'+d[1]+'"></span><div class="tx"><b>'+esc(d[0])+'</b><span class="mu">'+(fd.s.length?fd.s.join(", ")+" · ":"")+esc(fd.sev||"")+(fd.fecha?" · "+fd.fecha:"")+"</span>"+(fd.nota?'<div class="mu">'+esc(fd.nota)+"</div>":"")+'</div><button class="x" data-a="del" data-i="'+i+'" aria-label="Quitar hallazgo">✕</button></div>'}).join(""):'<div class="mu">Sin hallazgos.</div>';
+ var cus=D.cu.length?[["Personalizados",D.cu.map(function(c){return c.k})]]:[];
+ h+='<div class="row" style="margin-top:8px"><select id="ft" aria-label="Tipo de hallazgo">'+GRP.concat(cus).map(function(g){return'<optgroup label="'+g[0]+'">'+g[1].map(function(k){return'<option value="'+k+'">'+esc(F[k][0])+"</option>"}).join("")+"</optgroup>"}).join("")+'</select><button data-a="nt">+ Nuevo tipo</button></div>';
+ if(showNT)h+='<div class="row" style="margin-top:6px"><input id="ntn" placeholder="Nombre del hallazgo"><select id="ntc" aria-label="Color"><option value="'+K.r+'">Rojo</option><option value="'+K.n+'">Negro</option><option value="'+K.a+'">Azul</option><option value="'+K.o+'">Naranja</option><option value="'+K.v+'">Verde</option></select><button class="p" data-a="addt">Guardar tipo</button></div>';
+ h+='<div class="sf">'+["V","L/P","M","D","O/I"].map(function(s){return'<label><input type="checkbox" class="fs" value="'+s+'">'+s+"</label>"}).join("")+'</div><div class="mu">Superficies para caries, restauraciones y borde defectuoso (sin marcar = toda la corona). M/D también eligen el lado de fractura, diastema, impactación, gancho y migración; O/I en migración indica extrusión.</div>';
+ h+='<div class="row" style="margin-top:8px">'+so("sev",[["Leve","Leve"],["Moderado","Moderado"],["Severo","Severo"]],"Moderado",null,"fv")+'<input id="fn" placeholder="Notas del hallazgo" style="flex:2 1 160px"></div><button class="p" data-a="add" style="margin-top:8px;width:100%">Agregar hallazgo</button>';
+ el.innerHTML=h}
+
+/* ================= Leyenda ================= */
+var LEG=[["Ausente",16,{e:"a"}],["Incluido / retenido",13,{e:"r"}],["Implante",16,{e:"i"}],["Póntico (ausente + prótesis fija)",15,{e:"a",h:["corona"]}],["Furca grado 2",46,{fu:[2,0]}],
+ ["caries",16,{h:[["caries",["V","O/I"]]]}],["borde",16,{h:[["amalgama",["O/I"]],["borde",["O/I"]]]}],["endo",46,{h:["endo"]}],["periapical",11,{h:["periapical"]}],["fistula",11,{h:["fistula"]}],["resto",15,{h:["resto"]}],["exudado",11,{h:["exudado"]}],
+ ["fractura",11,{h:["fractura"]}],["desgaste",13,{h:[["desgaste",[],"Severo"]]}],["diastema",11,{h:["diastema"]}],["impaccion",16,{h:["impaccion"]}],["gancho",15,{h:["gancho"]}],["extraccion",17,{h:["extraccion"]}],
+ ["amalgama",16,{h:[["amalgama",["O/I","M"]]]}],["corona",16,{h:["corona"]}],["removible",36,{e:"a",h:["removible"]}],["migracion",12,{h:["migracion"]}],
+ ["resina",11,{h:[["resina",["V"]]]}],["provisional",21,{h:["provisional"]}],["carilla",21,{h:["carilla"]}],["poste",12,{h:["endo","poste"]}],["sensibilidad",14,{h:["sensibilidad"]}]];
+function legX(p){var x=def();if(p.e)x.e=p.e;if(p.fu)x.fu=p.fu;x.h=(p.h||[]).map(function(h){return typeof h=="string"?{k:h,s:[],sev:"Moderado"}:{k:h[0],s:h[1],sev:h[2]||"Moderado"}});return x}
+function wrap(t,max){var w=t.split(" "),l=[""];w.forEach(function(x){if((l[l.length-1]+" "+x).trim().length>max&&l[l.length-1])l.push(x);else l[l.length-1]=(l[l.length-1]+" "+x).trim()});return l.slice(0,3)}
+function legend(){var C=9,cw=66,ch=176,rows=Math.ceil(LEG.length/C),w=C*cw,hh=rows*ch;
+ var s='<svg xmlns="http://www.w3.org/2000/svg" width="'+w+'" height="'+hh+'" viewBox="0 0 '+w+" "+hh+'" font-family="Arial,Helvetica,sans-serif">'+defs()+'<rect width="'+w+'" height="'+hh+'" fill="#fff"/>';
+ LEG.forEach(function(it,i){var c=i%C,r=Math.floor(i/C),X=c*cw,Y=r*ch,lab=F[it[0]]?F[it[0]][0].replace(/ \(.*\)/,""):it[0],col=F[it[0]]?F[it[0]][1]:"#151515";
+  s+='<rect x="'+(X+3)+'" y="'+(Y+3)+'" width="'+(cw-6)+'" height="'+(ch-6)+'" rx="6" fill="#f6f8f8" stroke="#dde3e2"/>';
+  var x=legX(it[2]);s+=tooth(it[1],x,0,"L"+i,X+13,Y+8)+occl(it[1],x,X+15,Y+102,"Lo"+i);
+  s+='<rect x="'+(X+8)+'" y="'+(Y+143)+'" width="6" height="6" rx="1" fill="'+col+'"/>';
+  wrap(lab,14).forEach(function(l,k){s+='<text x="'+(X+17)+'" y="'+(Y+149+k*8.5)+'" font-size="7.5" fill="#1b2430">'+esc(l)+"</text>"})});
+ return s+"</svg>"}
+
+/* ================= Render ================= */
+function render(){var t=T(),s=stats(t);
+ $("tabs").innerHTML=D.ex.map(function(e,i){var st=stats(e.t);return'<button class="'+(i==xi?"on":"")+'" data-a="ex" data-i="'+i+'">'+esc(e.n)+(st.has&&i!=xi?" •":"")+"</button>"}).join("");
+ $("cp").hidden=!xi;
+ $("banner").innerHTML=demoOn?'<div class="banner">Estás viendo un <b>paciente de ejemplo</b> para mostrar cómo se dibujan los hallazgos. Usa «Vaciar examen» para empezar con un paciente real.</div>':"";
+ $("c1").innerHTML=arch(UP,1,t);$("c2").innerHTML=arch(LO,1,t);
+ var ev='<table class="ev"><tr><th>Examen</th><th>PD</th><th>NI</th><th>BOP</th><th>Placa</th></tr>'+D.ex.map(function(e){var q=stats(e.t);return q.has?"<tr><td>"+esc(e.n)+(e.f?' <span class="mu">'+e.f+"</span>":"")+"</td><td>"+q.pd.toFixed(1)+"</td><td>"+q.ni.toFixed(1)+"</td><td>"+Math.round(q.bop)+"%</td><td>"+Math.round(q.pl)+"%</td></tr>":""}).join("")+"</table>";
+ $("st").innerHTML="<h2>Análisis · "+esc(D.ex[xi].n)+'</h2><div class="stats"><div><b>'+s.pd.toFixed(1)+'</b><span>Sondaje prom. (mm)</span></div><div><b>'+s.ni.toFixed(1)+'</b><span>N.I. prom. (mm)</span></div><div><b>'+Math.round(s.bop)+'%</b><span>Sangrado (BOP)</span></div><div><b>'+Math.round(s.pl)+'%</b><span>Placa</span></div><div><b>'+s.mid+'</b><span>Sitios 4–5 mm</span></div><div><b>'+s.deep+'</b><span>Sitios ≥ 6 mm</span></div><div><b>'+s.pr+"</b><span>Dientes presentes</span></div></div><h3>Evolución por examen</h3>"+ev;
+ var l=[];ALL.forEach(function(n){var x=t[n];if(!x)return;var it=[];if(x.e=="a")it.push('<i style="background:#151515"></i>Ausente');if(x.e=="r")it.push('<i style="background:#151515"></i>Incluido');if(x.e=="i")it.push('<i style="background:'+K.a+'"></i>Implante');
+  x.h.forEach(function(fd){var d=F[fd.k]||[fd.k,"#888"];it.push('<i style="background:'+d[1]+'"></i>'+esc(d[0].replace(" (sin símbolo en el manual)",""))+(fd.s.length?" ("+fd.s.join(", ")+")":""))});
+  if(it.length)l.push("<div><b>"+n+"</b>"+it.join("")+"</div>")});
+ $("rs").innerHTML=l.length?l.join(""):'<div class="mu" style="border:0">Aún no hay hallazgos en este examen.</div>';
+ $("pid").value=D.p.id||"";$("pnom").value=D.p.nom||"";$("xf").value=D.ex[xi].f||"";ed()}
+
+/* ================= Ejemplo ================= */
+function demo(){D=fresh();D.p={id:"EJ-001",nom:"Paciente de ejemplo"};var t=D.ex[0].t;D.ex[0].f=today();
+ var seed=7,rnd=function(){seed=(seed*9301+49297)%233280;return seed/233280};
+ ALL.forEach(function(n){var x=def(),deepZ=[16,17,26,36,37,46,31,41].indexOf(n)>=0;for(var j=0;j<6;j++){var mg=(n%10<=3&&rnd()<.3)?-1:rnd()<.2?1:0,pd=2+Math.floor(rnd()*2)+(deepZ&&rnd()<.6?2+Math.floor(rnd()*3):0);x.mg[j]=mg;x.pd[j]=pd;x.bop[j]=pd>=4&&rnd()<.7?1:0;x.pl[j]=rnd()<.35?1:0}
+  x.lm=[n%10<=5?3+Math.floor(rnd()*3):null,null];t[n]=x});
+ var A=function(n,o){Object.keys(o).forEach(function(k){t[n][k]=o[k]})},H=function(k,s,sev){return{k:k,s:s||[],sev:sev||"Moderado",nota:"",fecha:today()}};
+ A(18,{e:"a"});A(28,{e:"r"});A(38,{e:"r"});A(48,{e:"a"});A(47,{e:"a",h:[H("corona")]});A(46,{h:[H("corona")]});A(45,{h:[H("corona")]});
+ A(16,{h:[H("amalgama",["O/I","M"]),H("borde",["M"])],fu:[2,1],mov:1});A(17,{h:[H("caries",["V"],"Severo"),H("caries",["O/I"],"Leve")]});
+ A(15,{h:[H("fractura",["M"])]});A(14,{h:[H("caries",["D","O/I"])]});A(13,{h:[H("desgaste",[],"Severo")]});
+ A(12,{h:[H("migracion",[])]});A(11,{h:[H("resina",["V","M"]),H("diastema",["M"])]});A(21,{h:[H("carilla")]});
+ A(22,{h:[H("endo"),H("poste"),H("provisional")]});A(23,{h:[H("sensibilidad")]});A(24,{h:[H("caries",["O/I"],"Leve")]});
+ A(25,{h:[H("periapical"),H("fistula"),H("caries",[],"Severo")]});A(26,{e:"i"});A(27,{h:[H("impaccion",["M"])]});
+ A(36,{h:[H("endo"),H("periapical"),H("amalgama",["O/I"])],fu:[2,2],mov:2});A(35,{e:"a",h:[H("removible")]});A(34,{h:[H("gancho",["M"])]});
+ A(33,{h:[H("exudado")]});A(32,{h:[H("migracion",["O/I"])]});A(44,{h:[H("extraccion")],mov:3});A(43,{h:[H("resto")]});A(37,{fu:[1,0]});
+ demoOn=true;xi=0;cur=16}
+
+/* ================= Eventos ================= */
+document.addEventListener("change",function(e){var el=e.target,k=el.dataset.k;if(!k)return;
+ if(k.indexOf("p.")==0){D.p[k.slice(2)]=el.value;save();return}
+ if(k=="x.f"){D.ex[xi].f=el.value;save();render();return}
+ if(k=="sev"||!cur)return;
+ var x=get(cur),i=+el.dataset.i;
+ if(k=="bop"||k=="pl")x[k][i]=el.checked?1:0;
+ else if(k=="pd"||k=="mg"||k=="lm")x[k][i]=el.value===""?null:+el.value;
+ else if(k=="fu")x.fu[i]=+el.value;else if(k=="pe")x.pe[i]=el.value;
+ else if(k=="mov")x.mov=+el.value;else x[k]=el.value;
+ save();render()});
+function dlBrowser(name,data){var b=data instanceof Blob?data:new Blob([data],{type:name.endsWith(".json")?"application/json":"application/octet-stream"}),u=URL.createObjectURL(b),a=document.createElement("a");a.href=u;a.download=name;document.body.appendChild(a);a.click();a.remove();setTimeout(function(){URL.revokeObjectURL(u)},1500);return Promise.resolve({status:"saved"})}
+function dl(name,data){if(!window.claude||!window.claude.use)return dlBrowser(name,data);return window.claude.use("downloads").then(function(d){if(!d)return dlBrowser(name,data);return d.save({filename:name,data:data})})}
+function toPng(svg){return new Promise(function(ok,no){var i=new Image();i.onload=function(){var c=document.createElement("canvas");c.width=i.width*2.4;c.height=i.height*2.4;var g=c.getContext("2d");g.fillStyle="#fff";g.fillRect(0,0,c.width,c.height);g.drawImage(i,0,0,c.width,c.height);ok(c.toDataURL("image/png"))};i.onerror=no;i.src="data:image/svg+xml;charset=utf-8,"+encodeURIComponent(svg)})}
+function errMsg(x,what){var c=x&&x.code;return c=="declined"?"Descarga cancelada.":c=="unavailable"||c=="not_granted"?what+" no está disponible en esta vista.":"No se pudo generar "+what.toLowerCase()+". Intenta de nuevo."}
+async function pdf(){var m=$("msg");m.textContent="Generando PDF…";
+ try{var J=window.jspdf;if(!J)throw{code:"lib"};var ev=D.ex.map(function(e){return[e,stats(e.t)]}).filter(function(p){return p[1].has});
+  if(!ev.length){m.textContent="Registra datos antes de generar el reporte.";return}
+  var doc=new J.jsPDF({unit:"mm",format:"a4"});
+  for(var e=0;e<ev.length;e++){var ex=ev[e][0],s=ev[e][1];if(e)doc.addPage();
+   doc.setFontSize(14);doc.text("Periodontograma - "+ex.n,10,13);doc.setFontSize(9);doc.text("Paciente: "+(D.p.nom||"-")+"    ID: "+(D.p.id||"-")+"    Fecha: "+(ex.f||"-"),10,19);
+   doc.addImage(await toPng(arch(UP,0,ex.t)),"PNG",10,23,190,97.5);doc.addImage(await toPng(arch(LO,0,ex.t)),"PNG",10,123,190,97.5);
+   doc.text("Sondaje prom.: "+s.pd.toFixed(1)+" mm   N.I. prom.: "+s.ni.toFixed(1)+" mm   BOP: "+Math.round(s.bop)+"%   Placa: "+Math.round(s.pl)+"%   Sitios >=6 mm: "+s.deep+"   Dientes presentes: "+s.pr,10,228);
+   var ls=[];ALL.forEach(function(n){var x=ex.t[n];if(!x)return;var it=[];if(x.e=="a")it.push("Ausente");if(x.e=="r")it.push("Incluido");if(x.e=="i")it.push("Implante");x.h.forEach(function(fd){it.push((F[fd.k]?F[fd.k][0].replace(" (sin símbolo en el manual)",""):fd.k)+(fd.s.length?" ("+fd.s.join(",")+")":""))});if(it.length)ls.push(n+": "+it.join(", "))});
+   doc.setFontSize(8);doc.text(doc.splitTextToSize("Hallazgos - "+(ls.join(" | ")||"sin hallazgos registrados"),190).slice(0,16),10,234)}
+  doc.addPage();doc.setFontSize(13);doc.text("Simbología y evolución",10,13);
+  var lg=legend(),lw=190,lh=lw*(Math.ceil(LEG.length/9)*176)/(9*66);doc.addImage(await toPng(lg),"PNG",10,18,lw,lh);
+  var y=18+lh+8;doc.setFontSize(9);[["Rojo","margen gingival, inflamación, sangrado, caries, endodoncia, lesión periapical, fístula, furca, exudado, restos radiculares, borde defectuoso."],["Negro","bolsas (rayado oblicuo), ausentes, incluidos, diastema, desgaste, fractura, impactación, ganchos, extracciones."],["Azul","amalgama, prótesis fija, removible, implantes, flechas de migración, rotación o extrusión."],["Naranja","provisionales, resina, carillas, endopostes."],["Verde","línea mucogingival."]].forEach(function(l){doc.text(doc.splitTextToSize(l[0]+": "+l[1],190),10,y);y+=6});
+  y+=4;doc.setFontSize(10);doc.text("Evolución por examen",10,y);doc.setFontSize(9);y+=6;
+  ev.forEach(function(p){doc.text(p[0].n+" ("+(p[0].f||"sin fecha")+"):  Sondaje "+p[1].pd.toFixed(1)+" mm   N.I. "+p[1].ni.toFixed(1)+" mm   BOP "+Math.round(p[1].bop)+"%   Placa "+Math.round(p[1].pl)+"%",10,y);y+=6});
+  doc.setFontSize(8);doc.text("Nomenclatura: Colectivo Periodoncia UNAN-León (2024). Referencia: Newman y Carranza, Periodontología Clínica Esencial (2023).",10,287);
+  await dl("periodontograma"+(D.p.id?"-"+D.p.id:"")+".pdf",doc.output("blob"));m.textContent="Reporte PDF guardado."}
+ catch(x){m.textContent=x&&x.code=="lib"?"No se pudo cargar el generador de PDF. Revisa la conexión y recarga.":errMsg(x,"El PDF")}}
+document.addEventListener("click",function(e){var el=e.target.closest("[data-a]");if(!el)return;var a=el.dataset.a;
+ if(a=="sel"){cur=+el.dataset.n;showNT=false;render();if(window.innerWidth<860)$("ed").scrollIntoView({behavior:"smooth",block:"start"})}
+ else if(a=="close"){cur=null;render()}
+ else if(a=="ex"){xi=+el.dataset.i;render()}
+ else if(a=="cp"){D.ex[xi].t=JSON.parse(JSON.stringify(D.ex[xi-1].t));save();render();$("msg").textContent="Datos copiados de «"+D.ex[xi-1].n+"»."}
+ else if(a=="nt"){showNT=!showNT;ed();var q=$("ntn");if(q)q.focus()}
+ else if(a=="addt"){var v=$("ntn").value.trim();if(v){var k="u"+Date.now();D.cu.push({k:k,l:v,c:$("ntc").value});F[k]=[v,$("ntc").value,"o"];showNT=false;save();ed();$("ft").value=k}}
+ else if(a=="add"&&cur){get(cur).h.push({k:$("ft").value,s:[].slice.call(document.querySelectorAll(".fs:checked")).map(function(i){return i.value}),sev:$("fv").value,nota:$("fn").value.trim(),fecha:today()});save();render()}
+ else if(a=="del"&&cur){get(cur).h.splice(+el.dataset.i,1);save();render()}
+ else if(a=="json")dl("periodontograma"+(D.p.id?"-"+D.p.id:"")+".json",JSON.stringify(D,null,1)).then(function(){$("msg").textContent="Archivo JSON guardado."}).catch(function(x){$("msg").textContent=errMsg(x,"La exportación")});
+ else if(a=="imp")$("fi").click();
+ else if(a=="pdf")pdf();
+ else if(a=="demo"){demo();save();render();$("msg").textContent="Ejemplo cargado."}
+ else if(a=="reset"){if(demoOn){D=fresh();demoOn=false}else{D.ex[xi].t={};D.ex[xi].f=""}cur=null;save();render();$("msg").textContent="Examen vacío."}});
+$("fi").addEventListener("change",function(e){var fl=e.target.files[0];if(!fl)return;var r=new FileReader();r.onload=function(){try{if(load(JSON.parse(r.result))){demoOn=false;xi=0;cur=null;save();render();$("msg").textContent="Datos importados."}else $("msg").textContent="El archivo no tiene un periodontograma reconocible."}catch(x){$("msg").textContent="No se pudo leer el archivo JSON."}e.target.value=""};r.readAsText(fl)});
+
+/* ================= Inicio ================= */
+D=fresh();
+try{var sv=localStorage.getItem(KEY);if(sv){load(JSON.parse(sv));demoOn=D.p.id=="EJ-001"}else{var o3=localStorage.getItem("perio3"),o2=localStorage.getItem("perio2");if(o3)load(JSON.parse(o3));else if(o2)load(JSON.parse(o2));else demo()}}catch(e){demo()}
+$("leg").innerHTML=legend();
+render();
+</script>
+
+</body>
+</html>

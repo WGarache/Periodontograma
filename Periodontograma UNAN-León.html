@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="es"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Periodontograma</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<style>
+:root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);--bg:#f4f6f8;--card:#fff;--tx:#1b2430;--mu:#667085;--bd:#d5dbe3;--ac:#0f766e;--acx:#fff}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#12171d;--card:#1b222b;--tx:#e8edf3;--mu:#98a2b3;--bd:#323c48;--ac:#2dd4bf;--acx:#06332f}}
+:root[data-theme="dark"]{--bg:#12171d;--card:#1b222b;--tx:#e8edf3;--mu:#98a2b3;--bd:#323c48;--ac:#2dd4bf;--acx:#06332f}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--tx);font:14px/1.4 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;padding:12px;max-width:900px;margin-inline:auto}
+h1{font-size:18px;margin:0}h2{font-size:15px;margin:0 0 8px}.mu{color:var(--mu);font-size:12px}
+.card{background:var(--card);border:1px solid var(--bd);border-radius:12px;padding:10px;margin:10px 0}
+input,select,textarea,button{font:inherit;color:var(--tx);background:var(--bg);border:1px solid var(--bd);border-radius:8px;padding:6px;width:100%;min-width:0}
+.row{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px}.row>*{flex:1 1 90px}
+button{cursor:pointer;width:auto}button.p,button.on{background:var(--ac);color:var(--acx);border:0;font-weight:600;padding:8px 12px}
+.sc{overflow-x:auto;background:#fff;padding:0}
+.g{width:100%;border-collapse:collapse;font-size:12px;margin:6px 0}.g td,.g th{padding:2px;text-align:center}.g td:first-child{text-align:left;color:var(--mu);width:56px}.g input[type=number]{padding:4px;text-align:center}.g input[type=checkbox]{width:18px;height:18px}
+.f{border-top:1px solid var(--bd);padding:6px 0}.x{color:#c0392b;float:right;border:0;background:none;padding:0 4px}
+.sf{display:flex;gap:5px;flex-wrap:wrap;margin:6px 0}.sf label{display:flex;gap:4px;align-items:center;border:1px solid var(--bd);border-radius:8px;padding:4px 8px}.sf input{width:auto}
+.lg i{display:inline-block;width:10px;height:10px;border-radius:2px;margin:0 3px 0 8px}
+</style></head><body>
+<h1>Periodontograma</h1>
+<div class="mu">Nomenclatura UNAN-León (Colectivo Periodoncia, 2024). Toca un diente del gráfico para registrar datos y hallazgos.</div>
+<div class="card">
+<div class="row"><input data-k="p.id" placeholder="ID paciente"><input data-k="p.nom" placeholder="Nombre y apellidos"></div>
+<div class="row" id="tabs"></div>
+<div class="row"><input data-k="x.f" type="date"><button data-a="cp" id="cp">Copiar examen anterior</button></div>
+<div class="row"><button class="p" data-a="pdf">Generar reporte PDF</button><button data-a="json">Exportar JSON</button><button data-a="imp">Importar</button><button data-a="reset">Vaciar examen</button><input type="file" id="fi" accept=".json" hidden></div>
+<div class="mu" id="msg"></div></div>
+<div class="card sc"><div id="c1"></div><div id="c2"></div></div>
+<div class="card" id="st"></div>
+<div class="card" id="ed"></div>
+<div class="card"><h2>Resumen de hallazgos</h2><div id="rs" class="mu"></div></div>
+<div class="mu lg">Código de color: <i style="background:#dd1111"></i>rojo: margen, sangrado, caries, endodoncia, periapical, fístula, furca<i style="background:#111"></i>negro: bolsas, ausentes, desgaste, fractura<i style="background:#1a3fc4"></i>azul: amalgama, prótesis fija, implante<i style="background:#f08a00"></i>naranja: resina, provisional, carilla<i style="background:#1a9a3a"></i>verde: línea mucogingival</div>
+<script>
+var UP=[18,17,16,15,14,13,12,11,21,22,23,24,25,26,27,28],LO=[48,47,46,45,44,43,42,41,31,32,33,34,35,36,37,38],ALL=UP.concat(LO);
+var K={r:"#dd1111",n:"#111111",a:"#1a3fc4",o:"#f08a00",v:"#1a9a3a"};
+var F={caries:["Caries",K.r,"o"],borde:["Borde defectuoso",K.r,"o"],amalgama:["Amalgama",K.a,"o"],resina:["Resina",K.o,"o"],corona:["Prótesis fija / corona",K.a,"c"],provisional:["Provisional",K.o,"c"],carilla:["Carilla",K.o,"v"],endo:["Endodoncia",K.r,"r"],poste:["Endoposte",K.o,"p"],periapical:["Lesión periapical",K.r,"a"],fistula:["Fístula",K.r,"f"],resto:["Resto radicular",K.r,"t"],exudado:["Exudado",K.r,"e"],impaccion:["Impactación de alimentos",K.n,"m"],diastema:["Diastema",K.n,"d"],desgaste:["Desgaste",K.n,"w"],fractura:["Fractura",K.n,"z"],gancho:["Gancho / apoyo removible",K.n,"g"],extraccion:["Extracción indicada",K.n,"x"],migracion:["Migración / rotación / extrusión",K.a,"M"]};
+var D={p:{id:"",nom:""},ex:[{n:"Inicial",f:"",t:{}},{n:"Reevaluación (1 mes)",f:"",t:{}},{n:"Mantenimiento 1",f:"",t:{}},{n:"Mantenimiento 2",f:"",t:{}}],cu:[]},xi=0,cur=null,showNT=false,$=function(i){return document.getElementById(i)},nn=function(v){return v!=null};
+try{var sv=localStorage.getItem("perio3");if(sv)D=JSON.parse(sv)}catch(e){}
+D.cu.forEach(function(c){F[c.k]=[c.l,c.c,"u"]});
+function save(){try{localStorage.setItem("perio3",JSON.stringify(D))}catch(e){}}
+function n6(){return[null,null,null,null,null,null]}
+function def(){return{e:"p",mov:0,fu:[0,0],pe:["",""],pd:n6(),mg:n6(),bop:[0,0,0,0,0,0],lm:[null,null],h:[],nota:""}}
+function T(){return D.ex[xi].t}
+function get(n){var t=T();return t[n]||(t[n]=def())}
+function tt(n){var d=n%10;return d<3?"i":d==3?"c":d<6?"p":"m"}
+function lf(x,k){var c="";x.h.forEach(function(f){var d=F[f.k];if(d&&d[2]==k)c=d[1]});return c}
+var R={i:"M14 42Q15 8 20 3Q25 8 26 42Z",c:"M13 42Q15 4 20 2Q25 4 27 42Z",p:"M13 42Q15 8 20 4Q25 8 27 42Z",m:"M5 42L9 6L17 42Z M23 42L31 6L35 42Z M15 42L20 14L25 42Z"};
+var C={i:"M10 44Q10 84 16 86H24Q30 84 30 44Z",c:"M11 44Q9 68 20 88Q31 68 29 44Z",p:"M9 44Q8 80 14 84L20 79L26 84Q32 80 31 44Z",m:"M4 44Q3 82 10 85L16 80L22 84L28 80L32 85Q38 82 36 44Z"};
+function mk(d,c,w){return'<path d="'+d+'" fill="none" stroke="'+c+'" stroke-width="'+w+'"/>'}
+function drawT(n,x,cx,y0,sd){var t=tt(n),low=n>30&&n<49,a=x.e=="a",rs=lf(x,"t"),cc=lf(x,"c"),
+g='<g transform="translate('+(cx+2)+','+(low?y0+90:y0)+') scale(1,'+(low?-1:1)+')" stroke="#111" stroke-width="1.2" stroke-linejoin="round">';
+g+=x.e=="i"?mk("M16 44L13 52L27 58L13 64L27 70L16 76L22 82",K.a,2):'<path d="'+R[t]+'" fill="'+(a?K.n:rs?K.r:"#fff")+'"/>';
+g+='<path d="'+C[t]+'" fill="'+(a?K.n:rs?K.r:x.e=="i"?K.a:cc||"#fff")+'"/>';
+if(x.e=="r")g+='<ellipse cx="20" cy="66" rx="19" ry="12" fill="none" stroke-width="2.5"/>';
+if(x.fu[sd]>0)g+='<circle cx="20" cy="50" r="5" fill="none" stroke="'+K.r+'" stroke-width="2.5"/>';
+if(!a)x.h.forEach(function(f){var d=F[f.k];if(!d)return;var c=d[1],k=d[2];
+if(k=="o"||k=="u")g+='<circle cx="20" cy="66" r="5" fill="'+c+'" stroke="none"/>';
+else if(k=="v")g+='<rect x="12" y="56" width="16" height="26" fill="'+c+'" fill-opacity=".8" stroke="none"/>';
+else if(k=="r")g+=mk("M20 44V8"+(t=="m"?"M12 44L10 10M28 44L30 10":""),c,3);
+else if(k=="p")g+='<rect x="18" y="44" width="4" height="16" fill="'+c+'" stroke="none"/>';
+else if(k=="a")g+='<circle cx="20" cy="6" r="7" fill="none" stroke="'+c+'" stroke-width="2.5"/>';
+else if(k=="f")g+='<circle cx="27" cy="26" r="5" fill="none" stroke="'+c+'" stroke-width="2.5"/><circle cx="27" cy="40" r="2" fill="'+c+'" stroke="none"/>';
+else if(k=="e")g+=mk("M20 46V68M14 62L20 70L26 62",c,2.5);
+else if(k=="m")g+=mk("M42 44L34 50M34 44V50H40",c,2.5);
+else if(k=="d")g+=mk("M40 52V84M44 52V84",c,2);
+else if(k=="w")g+='<rect x="10" y="82" width="20" height="5" fill="'+c+'"/>';
+else if(k=="z")g+=mk("M27 86L31 77L26 70L31 62",c,2.5);
+else if(k=="g")g+=mk("M30 50H42V58",c,3);
+else if(k=="x")g+=mk("M8 46L32 86M32 46L8 86",c,2.5);
+else if(k=="M")g+=mk("M38 54V82M32 76L38 84L44 76",c,3)});
+return g+"</g>"}
+function occ(n,x,ox,oy){var q=Math.floor(n/10),me=(q==1||q==4)?"R":"L",s='<g transform="translate('+ox+','+oy+')" stroke-linejoin="round">';
+[["V","0,0 36,0 27,9 9,9"],["L/P","0,36 36,36 27,27 9,27"],["L","0,0 9,9 9,27 0,36"],["R","36,0 27,9 27,27 36,36"],["O/I","9,9 27,9 27,27 9,27"]].forEach(function(p){
+var sn=p[0]=="L"||p[0]=="R"?(p[0]==me?"M":"D"):p[0],fi="#fff",st="#111",sw=1;
+if(x.e=="a")fi=K.n;else if(x.e=="i")fi=K.a;
+x.h.forEach(function(f){var d=F[f.k];if(!d||d[2]!="o")return;if(!f.s.length||f.s.indexOf(sn)>=0){if(f.k=="borde"){st=d[1];sw=3}else fi=d[1]}});
+s+='<polygon points="'+p[1]+'" fill="'+fi+'" stroke="'+st+'" stroke-width="'+sw+'"/>'});
+return s+"</g>"}
+function arch(list,ui,t){var W=44,L=58,low=list==LO,sc=3,w=L+W*16,H=392,s='<svg xmlns="http://www.w3.org/2000/svg" width="'+w+'" height="'+H+'" viewBox="0 0 '+w+" "+H+'" font-family="Arial,sans-serif" font-size="10"'+(ui?' style="min-width:740px;width:100%;height:auto;display:block"':"")+'><defs><pattern id="hp" width="4" height="4" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><line x1="0" y1="0" x2="0" y2="4" stroke="#111" stroke-width="1.3"/></pattern></defs><rect width="'+w+'" height="'+H+'" fill="#fff"/>';
+[16,30,44,58,72,162,252,266,280,294,308,322,336,350].forEach(function(y){s+='<line x1="0" x2="'+w+'" y1="'+y+'" y2="'+y+'" stroke="#bbb"/>'});
+for(var i=0;i<=16;i++){var X=L+i*W;s+='<line x1="'+X+'" x2="'+X+'" y1="0" y2="72" stroke="#bbb"/><line x1="'+X+'" x2="'+X+'" y1="252" y2="350" stroke="#bbb"/>'}
+s+='<line x1="'+(L+8*W)+'" x2="'+(L+8*W)+'" y1="0" y2="'+H+'" stroke="#888" stroke-dasharray="3 3"/>';
+["Margen","Sondaje","N.I.","L.M.G."].forEach(function(l,i){s+='<text x="3" y="'+(27+i*14)+'" fill="#444">'+l+'</text><text x="3" y="'+(263+i*14)+'" fill="#444">'+l+'</text>'});
+["Furca V/P","Movilidad","Percusión"].forEach(function(l,i){s+='<text x="3" y="'+(319+i*14)+'" fill="#444" font-size="9">'+l+'</text>'});
+s+='<text x="3" y="12" font-weight="bold">Pieza</text><text x="3" y="120" fill="#444">Vestibular</text><text x="3" y="210" fill="#444">'+(low?"Lingual":"Palatino")+'</text>';
+var G=["",""],M=["",""],Q=["",""],B=["",""],pg=[0,0],pm=[0,0];
+var tx=function(v,xx,yv){return v==null?"":'<text x="'+xx+'" y="'+yv+'" text-anchor="middle" fill="'+K.a+'">'+v+'</text>'};
+list.forEach(function(n,i){var x=t[n]||def(),cx=L+i*W,sx=[cx+9,cx+22,cx+35];
+s+='<text x="'+(cx+22)+'" y="12" text-anchor="middle" font-weight="bold">'+n+'</text>';
+for(var sd=0;sd<2;sd++){var Y0=sd?162:72,yy=sd?252:16,cej=Y0+(low?47:43),dir=low?-1:1;
+s+=drawT(n,x,cx,Y0,sd);
+if(x.e=="a"){s+='<path d="M'+(cx+4)+" "+(yy+28)+"H"+(cx+W-4)+'" stroke="#111" stroke-width="2"/>';pg[sd]=0;pm[sd]=0;continue}
+if(!x.mg.slice(sd*3,sd*3+3).some(nn))pg[sd]=0;
+for(var j=0;j<3;j++){var ix=sd*3+j,m=x.mg[ix],d=x.pd[ix],my=cej+dir*(m||0)*sc;
+s+=tx(m,sx[j],yy+11)+tx(d,sx[j]-2,yy+25)+tx(nn(m)&&nn(d)?d-m:null,sx[j],yy+39);
+if(x.bop[ix]){s+='<circle cx="'+(sx[j]+6)+'" cy="'+(yy+21)+'" r="2.2" fill="'+K.r+'"/>';B[sd]+='<line x1="'+(sx[j]-7)+'" x2="'+(sx[j]+7)+'" y1="'+my+'" y2="'+my+'" stroke="'+K.r+'" stroke-width="6" stroke-opacity=".35"/>'}
+if(nn(m)){G[sd]+=(pg[sd]?"L":"M")+sx[j]+" "+my+" ";pg[sd]=1}
+if(d>=4){var by=my-dir*d*sc;Q[sd]+='<rect x="'+(sx[j]-6)+'" y="'+Math.min(my,by)+'" width="12" height="'+Math.abs(by-my)+'" fill="url(#hp)"/><path d="M'+(sx[j]-6)+" "+by+'h12" stroke="#111" stroke-width="1.5"/>'}}
+s+=tx(x.lm[sd],cx+22,yy+53);
+if(nn(x.lm[sd])){var gy=cej+dir*(x.mg[sd*3+1]||0)*sc-dir*x.lm[sd]*sc;M[sd]+=(pm[sd]?"L":"M")+(cx+22)+" "+gy+" ";pm[sd]=1}else pm[sd]=0}
+if(x.e!="a"){var fa=tt(n)=="m"||n==14||n==24;s+=tx(fa?x.fu[0]+"/"+x.fu[1]:null,cx+22,319)+tx(x.mov,cx+22,333)+tx((x.pe[0]?x.pe[0]+"V ":"")+(x.pe[1]?x.pe[1]+"H":"")||null,cx+22,347)}
+s+=occ(n,x,cx+4,354);
+if(ui)s+='<rect x="'+cx+'" y="0" width="'+W+'" height="'+H+'" fill="#000" fill-opacity="0" data-a="sel" data-n="'+n+'" style="cursor:pointer"'+(cur==n?' stroke="#0f766e" stroke-width="3"':"")+'/>'});
+for(var q=0;q<2;q++){s+=Q[q]+(G[q]?mk(G[q],K.r,2):"")+(M[q]?mk(M[q],K.v,2):"")+B[q]}
+return s+"</svg>"}
+function stats(t){var sp=0,np=0,sn=0,cn=0,b=0,pr=0;ALL.forEach(function(n){var x=t[n]||def();if(x.e=="a")return;pr++;for(var j=0;j<6;j++){if(nn(x.pd[j])){sp+=x.pd[j];np++;if(nn(x.mg[j])){sn+=x.pd[j]-x.mg[j];cn++}}b+=x.bop[j]}});
+return{pd:np?sp/np:0,ni:cn?sn/cn:0,bop:pr?100*b/(pr*6):0,pr:pr,has:np>0||ALL.some(function(n){return t[n]&&(t[n].h.length||t[n].e!="p")})}}
+function esc(s){return String(s).replace(/[&<>"]/g,function(c){return{"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]})}
+function so(k,a,v,i){return'<select data-k="'+k+'"'+(i==null?"":' data-i="'+i+'"')+">"+a.map(function(o){return'<option value="'+o[0]+'"'+(o[0]==v?" selected":"")+">"+o[1]+"</option>"}).join("")+"</select>"}
+var G4=[[0,0],[1,1],[2,2],[3,3]],PE=[["","–"],["+","+"],["-","−"]];
+function grid(x,o,t){var h='<div class="mu">'+t+'</div><table class="g"><tr><td></td><td>D</td><td>C</td><td>M</td></tr>';
+[["PD","pd"],["Margen","mg"]].forEach(function(q){h+="<tr><td>"+q[0]+"</td>";for(var j=o;j<o+3;j++)h+='<td><input type="number" min="-15" max="15" data-k="'+q[1]+'" data-i="'+j+'" value="'+(nn(x[q[1]][j])?x[q[1]][j]:"")+'"></td>';h+="</tr>"});
+h+="<tr><td>BOP</td>";for(var j=o;j<o+3;j++)h+='<td><input type="checkbox" data-k="bop" data-i="'+j+'"'+(x.bop[j]?" checked":"")+"></td>";
+return h+'</tr><tr><td>L.M.G.</td><td colspan="3"><input type="number" min="0" max="15" data-k="lm" data-i="'+(o/3)+'" value="'+(nn(x.lm[o/3])?x.lm[o/3]:"")+'" placeholder="mm desde el margen"></td></tr></table>'}
+function ed(){var el=$("ed");if(!cur){el.innerHTML='<div class="mu">Selecciona un diente en el gráfico.</div>';return}
+var x=get(cur),fa=tt(cur)=="m"||cur==14||cur==24,h="<h2>Diente "+cur+"</h2>"+'<div class="row">'+so("e",[["p","Presente"],["a","Ausente"],["r","Incluido"],["i","Implante"]],x.e)+so("mov",G4,x.mov)+"</div>";
+h+='<div class="mu">Movilidad (0–3)'+(fa?" · Furca V / P (0–3)":"")+" · Percusión V / H</div>";
+h+='<div class="row">'+(fa?so("fu",G4,x.fu[0],0)+so("fu",G4,x.fu[1],1):"")+so("pe",PE,x.pe[0],0)+so("pe",PE,x.pe[1],1)+"</div>";
+if(x.e!="a")h+=grid(x,0,"Vestibular")+grid(x,3,tt(cur)=="m"||cur<30&&cur>10||cur>20&&cur<30?"Palatino / Lingual":"Lingual");
+h+='<input data-k="nota" placeholder="Nota del diente" value="'+esc(x.nota)+'"><h2 style="margin-top:10px">Hallazgos clínicos</h2>';
+h+=x.h.length?x.h.map(function(f,i){var d=F[f.k]||[f.k,"#888"];return'<div class="f"><button class="x" data-a="del" data-i="'+i+'">✕</button><b style="color:'+d[1]+'">'+esc(d[0])+"</b> "+(f.s.length?f.s.join(", "):"")+(f.nota?'<div class="mu">'+esc(f.nota)+"</div>":"")+"</div>"}).join(""):'<div class="mu">Sin hallazgos.</div>';
+h+='<div class="row"><select id="ft">'+Object.keys(F).map(function(k){return'<option value="'+k+'">'+esc(F[k][0])+"</option>"}).join("")+'</select><button data-a="nt">+ Nuevo hallazgo</button></div>';
+if(showNT)h+='<div class="row"><input id="ntn" placeholder="Nombre del hallazgo"><select id="ntc"><option value="'+K.r+'">Rojo</option><option value="'+K.n+'">Negro</option><option value="'+K.a+'">Azul</option><option value="'+K.o+'">Naranja</option><option value="'+K.v+'">Verde</option></select><button class="p" data-a="addt">Guardar</button></div>';
+h+='<div class="sf">'+["V","L/P","M","D","O/I"].map(function(s){return'<label><input type="checkbox" class="fs" value="'+s+'">'+s+"</label>"}).join("")+'</div><div class="mu">Superficies (caries, restauraciones, borde defectuoso; vacío = todas)</div><input id="fn" placeholder="Notas del hallazgo"><button class="p" data-a="add" style="margin-top:8px;width:100%">Agregar hallazgo</button>';
+el.innerHTML=h}
+function render(){var t=T(),s=stats(t);
+$("tabs").innerHTML=D.ex.map(function(e,i){return'<button class="'+(i==xi?"on":"")+'" data-a="ex" data-i="'+i+'">'+esc(e.n)+"</button>"}).join("");
+$("cp").style.display=xi?"":"none";
+$("c1").innerHTML=arch(UP,1,t);$("c2").innerHTML=arch(LO,1,t);
+$("st").innerHTML="<h2>Análisis · "+esc(D.ex[xi].n)+"</h2><div class='row'><div>PD prom.<br><b>"+s.pd.toFixed(1)+" mm</b></div><div>NI prom.<br><b>"+s.ni.toFixed(1)+" mm</b></div><div>BOP<br><b>"+Math.round(s.bop)+"%</b></div><div>Dientes presentes<br><b>"+s.pr+"</b></div></div>";
+var l=[];ALL.forEach(function(n){if(t[n]&&t[n].h.length)l.push("<b>"+n+"</b>: "+t[n].h.map(function(f){return esc(F[f.k]?F[f.k][0]:f.k)}).join(", "))});
+$("rs").innerHTML=l.length?l.join("<br>"):"Aún no hay hallazgos.";
+document.querySelectorAll("[data-k^='p.']").forEach(function(i){i.value=D.p[i.dataset.k.slice(2)]||""});
+document.querySelector("[data-k='x.f']").value=D.ex[xi].f||"";ed()}
+document.addEventListener("change",function(e){var el=e.target,k=el.dataset.k;if(!k)return;
+if(k.indexOf("p.")==0){D.p[k.slice(2)]=el.value;save();return}
+if(k=="x.f"){D.ex[xi].f=el.value;save();return}
+var x=get(cur),i=+el.dataset.i;
+if({pd:1,mg:1,lm:1,fu:1,pe:1,bop:1}[k])x[k][i]=el.type=="checkbox"?(el.checked?1:0):k=="pe"?el.value:k=="fu"?+el.value:el.value===""?null:+el.value;
+else x[k]=k=="mov"?+el.value:el.value;
+save();render()});
+function dl(name,data){return claude.use("downloads").then(function(d){if(!d)throw 0;return d.save({filename:name,data:data})})}
+function toPng(svg){return new Promise(function(ok,no){var i=new Image();i.onload=function(){var c=document.createElement("canvas");c.width=i.width*2;c.height=i.height*2;var g=c.getContext("2d");g.fillStyle="#fff";g.fillRect(0,0,c.width,c.height);g.drawImage(i,0,0,c.width,c.height);ok(c.toDataURL("image/png"))};i.onerror=no;i.src="data:image/svg+xml;charset=utf-8,"+encodeURIComponent(svg)})}
+async function pdf(){var m=$("msg");m.textContent="Generando PDF...";
+try{var J=window.jspdf;if(!J)throw"lib";var ev=D.ex.map(function(e){return[e,stats(e.t)]}).filter(function(p){return p[1].has});if(!ev.length){m.textContent="Registra datos antes de generar el reporte.";return}
+var doc=new J.jsPDF({unit:"mm",format:"a4"});
+for(var e=0;e<ev.length;e++){var ex=ev[e][0],s=ev[e][1];if(e)doc.addPage();
+doc.setFontSize(14);doc.text("Periodontograma - "+ex.n,10,14);doc.setFontSize(9);doc.text("Paciente: "+(D.p.nom||"-")+"    ID: "+(D.p.id||"-")+"    Fecha: "+(ex.f||"-"),10,20);
+doc.addImage(await toPng(arch(UP,0,ex.t)),"PNG",10,24,190,97);doc.addImage(await toPng(arch(LO,0,ex.t)),"PNG",10,124,190,97);
+doc.text("PD prom: "+s.pd.toFixed(1)+" mm    NI prom: "+s.ni.toFixed(1)+" mm    BOP: "+Math.round(s.bop)+"%    Dientes presentes: "+s.pr,10,228);
+var ls=[];ALL.forEach(function(n){var x=ex.t[n];if(x&&x.h.length)ls.push(n+": "+x.h.map(function(f){return F[f.k]?F[f.k][0]:f.k}).join(", "))});
+doc.setFontSize(8);doc.text(doc.splitTextToSize("Hallazgos - "+(ls.join(" | ")||"sin hallazgos registrados"),190).slice(0,14),10,235)}
+doc.addPage();doc.setFontSize(13);doc.text("Leyenda y evolucion",10,14);doc.setFontSize(9);
+[[K.r,"Rojo: margen gingival, inflamacion, puntos sangrantes, caries, endodoncia, lesion periapical, fistula, furca, exudado, restos radiculares, borde defectuoso."],[K.n,"Negro: bolsas periodontales (rayado oblicuo), ausentes, incluidos, diastema, desgaste, fractura, ganchos, extracciones."],[K.a,"Azul: amalgama, protesis fija, implantes, flechas de migracion, rotacion o extrusion."],[K.o,"Naranja: provisionales, resina, carillas, endopostes."],[K.v,"Verde: linea mucogingival."]].forEach(function(l,i){doc.setFillColor(l[0]);doc.rect(10,22+i*9,4,4,"F");doc.text(doc.splitTextToSize(l[1],180),17,25+i*9)});
+doc.setFontSize(10);doc.text("Evolucion por examen",10,76);doc.setFontSize(9);
+ev.forEach(function(p,i){doc.text(p[0].n+" ("+(p[0].f||"sin fecha")+"):  PD "+p[1].pd.toFixed(1)+" mm   NI "+p[1].ni.toFixed(1)+" mm   BOP "+Math.round(p[1].bop)+"%",10,84+i*7)});
+doc.setFontSize(8);doc.text("Nomenclatura: Colectivo Periodoncia UNAN-Leon (2024). Referencia: Newman y Carranza, Periodontologia Clinica Esencial (2023).",10,285);
+await dl("periodontograma.pdf",doc.output("blob"));m.textContent="Reporte PDF listo."}
+catch(x){m.textContent=x&&x.code=="declined"?"Descarga cancelada.":"No se pudo generar el PDF en esta vista."}}
+document.addEventListener("click",function(e){var el=e.target.closest("[data-a]");if(!el)return;var a=el.dataset.a;
+if(a=="sel"){cur=+el.dataset.n;showNT=false;render()}
+else if(a=="ex"){xi=+el.dataset.i;cur=null;render()}
+else if(a=="cp"){D.ex[xi].t=JSON.parse(JSON.stringify(D.ex[xi-1].t));save();render()}
+else if(a=="nt"){showNT=!showNT;ed();var q=$("ntn");if(q)q.focus()}
+else if(a=="addt"){var v=$("ntn").value.trim();if(v){var k="u"+Date.now();D.cu.push({k:k,l:v,c:$("ntc").value});F[k]=[v,$("ntc").value,"u"];showNT=false;save();ed();$("ft").value=k}}
+else if(a=="add"&&cur){get(cur).h.push({k:$("ft").value,s:[].slice.call(document.querySelectorAll(".fs:checked")).map(function(i){return i.value}),nota:$("fn").value.trim()});save();render()}
+else if(a=="del"){get(cur).h.splice(+el.dataset.i,1);save();render()}
+else if(a=="json")dl("periodontograma.json",JSON.stringify(D,null,1)).catch(function(){$("msg").textContent="Exportación no disponible en esta vista."});
+else if(a=="imp")$("fi").click();
+else if(a=="pdf")pdf();
+else if(a=="reset"){D.ex[xi].t={};D.ex[xi].f="";cur=null;save();render()}});
+$("fi").addEventListener("change",function(e){var f=e.target.files[0];if(!f)return;var r=new FileReader();r.onload=function(){try{var d=JSON.parse(r.result);if(d.ex){D=d;D.cu=D.cu||[];D.cu.forEach(function(c){F[c.k]=[c.l,c.c,"u"]});xi=0;cur=null;save();render()}}catch(x){}};r.readAsText(f)});
+render();
+</script></body></html>
